@@ -1,4 +1,4 @@
-package com.example.doctorappoint.component
+package com.example.doctorappoint.common
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -49,6 +49,7 @@ fun SpacerHeight(height : Dp = 10.dp){
 @Composable
 fun SearchBar(
    modifier: Modifier = Modifier,
+   placeholder: String,
    searchString: String,
    onSearchStringChange: (String) -> Unit
 ) {
@@ -64,7 +65,7 @@ fun SearchBar(
                 .fillMaxWidth(),
             placeholder = {
                Text(
-                   text = "Tìm kiếm dịch vụ",
+                   text = placeholder,
                    fontSize = 16.sp
                )
             },

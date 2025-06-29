@@ -1,6 +1,5 @@
-package com.example.doctorappoint.navigation
+package com.example.doctorappoint.ui.home
 
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,21 +34,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
-import com.example.doctorappoint.component.SearchBar
-import com.example.doctorappoint.component.SpacerHeight
-import com.example.doctorappoint.component.SpacerWidth
+import com.example.doctorappoint.common.LoginManager
+import com.example.doctorappoint.common.SearchBar
+import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.common.SpacerWidth
 import com.example.doctorappoint.model.News
+import com.example.doctorappoint.model.User
 import com.example.doctorappoint.model.bannerList
 import com.example.doctorappoint.model.newsList
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import com.example.doctorappoint.ui.theme.SecondaryColor
 import kotlinx.coroutines.delay
+import kotlinx.datetime.LocalTime
+import network.chaintech.kmp_date_time_picker.utils.now
 
 @Composable
 fun HomeScreen(
@@ -57,6 +61,12 @@ fun HomeScreen(
     navController: NavHostController
 ){
     var searchString by remember{ mutableStateOf("") }
+    val context = LocalContext.current
+    var user by remember { mutableStateOf(LoginManager.getUser(context)) }
+    
+    LaunchedEffect(Unit) {
+        user = LoginManager.getUser(context)
+    }
 
     Column(
         modifier = modifier
@@ -64,11 +74,12 @@ fun HomeScreen(
             .background(Color.White)
             .padding(horizontal = 16.dp)
     ){
-        TopBar()
+        TopBar(user = user)
         SpacerHeight(12.dp)
         SearchBar(
             modifier = Modifier.fillMaxWidth(),
             searchString = searchString,
+            placeholder = "Tìm kiếm dịch vụ",
             onSearchStringChange = { searchString = it }
         )
         SpacerHeight(24.dp)
@@ -87,7 +98,14 @@ fun HomeScreen(
 }
 
 @Composable
-fun TopBar(modifier: Modifier = Modifier){
+fun TopBar(modifier: Modifier = Modifier, user: User?){
+    val currentHour = LocalTime.now().hour
+    val welcomeMessage = when {
+        currentHour < 12 -> "Chào buổi sáng"
+        currentHour < 17 -> "Chào buổi chiều"
+        else -> "Chào buổi tối"
+    }
+    
     Row(
         modifier = modifier
             .fillMaxWidth(),
@@ -96,7 +114,7 @@ fun TopBar(modifier: Modifier = Modifier){
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background),
+                painter = painterResource(id = R.drawable.doctor),
                 contentDescription = "Profile Picture",
                 modifier = Modifier
                     .size(60.dp)
@@ -106,16 +124,17 @@ fun TopBar(modifier: Modifier = Modifier){
             SpacerWidth(12.dp)
             Column {
                 Text(
-                    text = "Chào mừng bạn",
+                    text = welcomeMessage,
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
                 Text(
-                    text = "Your name",
+                    text = user?.name ?: "User",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
+
             }
         }
         IconButton (onClick = { /* Handle notification click */ }) {
@@ -190,6 +209,8 @@ fun ServicesGrid(modifier: Modifier = Modifier,navController: NavHostController)
                 modifier = Modifier.weight(1f),
                 iconResId = R.drawable.stethoscope,
                 onclick = {
+                    // Điều hướng đến màn hình đặt khám chuyên khoa
+
                      navController.navigate("selectDepartment")
                 }
             )
@@ -210,7 +231,7 @@ fun ServicesGrid(modifier: Modifier = Modifier,navController: NavHostController)
         ) {
             // Hàng 2
             ServiceItem(
-                text = "Khám chuyên khoa",
+                text = "Khám ngoài giờ",
                 modifier = Modifier.weight(1f),
                 iconResId = R.drawable.stethoscope,
                 onclick = {
@@ -218,7 +239,7 @@ fun ServicesGrid(modifier: Modifier = Modifier,navController: NavHostController)
                 }
             )
             ServiceItem(
-                text = "Khám chuyên khoa",
+                text = "Đặt lịch uống thuốc",
                 modifier = Modifier.weight(1f),
                 iconResId = R.drawable.stethoscope,
                 onclick = {

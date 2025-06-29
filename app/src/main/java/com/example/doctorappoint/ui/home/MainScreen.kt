@@ -1,5 +1,6 @@
-package com.example.doctorappoint.navigation
+package com.example.doctorappoint.ui.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,12 +17,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -30,24 +29,31 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.doctorappoint.ui.account.profile.AccountScreen
-import com.example.doctorappoint.ui.theme.service.DoctorListScreen
-import com.example.doctorappoint.ui.theme.service.SelectDepartmentScreen
 
 @Composable
-fun MainScreen(mainAppNavController: NavHostController){
-
-//    selectedIconColor = Color.White,
-//    unselectedIconColor = Color.Gray,
-//    indicatorColor = Color(0xFF2D8C9D)
+fun MainScreen(
+    navController: NavHostController,
+    onLogout: () -> Unit
+) {
     val bottomBarNavController = rememberNavController()
     val navBackStackEntry by bottomBarNavController.currentBackStackEntryAsState()
+    val context = LocalContext.current
+
+    BackHandler {
+        if (navBackStackEntry?.destination?.route == "home") {
+            android.os.Process.killProcess(android.os.Process.myPid())
+        } else {
+            bottomBarNavController.popBackStack()
+        }
+    }
 
     data class BottomNavigationItem(
         val title: String,
         val route: String,
         val unselectedIcon: ImageVector,
         val selectedIcon: ImageVector
-        )
+    )
+    
     val items = listOf(
         BottomNavigationItem(
             title = "Home",
@@ -75,66 +81,66 @@ fun MainScreen(mainAppNavController: NavHostController){
         ),
     )
 
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            NavigationBar (
+            NavigationBar(
                 modifier = Modifier.height(72.dp),
                 containerColor = Color.White
-            ){
-               items.forEach{ item->
-                   val isSelected = item.route == navBackStackEntry?.destination?.route
-                   NavigationBarItem(
-                       selected = isSelected,
-                       icon = {
-                           Icon(imageVector = if(isSelected){
-                               item.selectedIcon
-                           }else item.unselectedIcon,
-                               contentDescription = item.title
-                           )
-                       },
-                       onClick = {
-                           bottomBarNavController.navigate(item.route){
-                               popUpTo(bottomBarNavController.graph.findStartDestination().id){
-                                   saveState = true
-                               }
-                               launchSingleTop = true
-                               restoreState = true
-                           }
-                       },
-                       colors = NavigationBarItemDefaults.colors(
-                               selectedIconColor = Color.White,
-                                unselectedIconColor = Color.Gray,
-                                indicatorColor = Color(0xFF2D8C9D)
-                       )
-                   )
-
-
-               }
+            ) {
+                items.forEach { item ->
+                    val isSelected = item.route == navBackStackEntry?.destination?.route
+                    NavigationBarItem(
+                        selected = isSelected,
+                        icon = {
+                            Icon(
+                                imageVector = if (isSelected) {
+                                    item.selectedIcon
+                                } else item.unselectedIcon,
+                                contentDescription = item.title
+                            )
+                        },
+                        onClick = {
+                            bottomBarNavController.navigate(item.route) {
+                                popUpTo(bottomBarNavController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            unselectedIconColor = Color.Gray,
+                            indicatorColor = Color(0xFF2D8C9D)
+                        )
+                    )
+                }
             }
         }
-    ) {innerPadding ->
+    ) { innerPadding ->
         NavHost(
             navController = bottomBarNavController,
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") {
-                HomeScreen( navController = mainAppNavController)
+                HomeScreen(navController = navController)
             }
             composable("history") {
                 // Placeholder for History Screen
-                androidx.compose.material3.Text("History Screen Content")
+                Text("History Screen Content")
             }
             composable("notification") {
                 // Placeholder for Notification Screen
-                androidx.compose.material3.Text("Notification Screen Content")
+                Text("Notification Screen Content")
             }
             composable("profile") {
-                AccountScreen(navController = mainAppNavController)
+                AccountScreen(
+                    navController = navController,
+                    onLogout = onLogout
+                )
             }
-
         }
     }
 }

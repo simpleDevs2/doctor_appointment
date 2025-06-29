@@ -1,0 +1,149 @@
+package com.example.doctorappoint.ui
+
+import android.annotation.SuppressLint
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.doctorappoint.common.LoginManager
+import com.example.doctorappoint.navigation.WelcomeScreen
+import com.example.doctorappoint.ui.account.login.LoginScreen
+import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
+import com.example.doctorappoint.ui.home.MainScreen
+import com.example.doctorappoint.ui.theme.DoctorAppointTheme
+import com.example.doctorappoint.ui.theme.service.DoctorListScreen
+import com.example.doctorappoint.ui.theme.service.SelectDepartmentScreen
+import com.example.doctorappoint.ui.theme.user.OtpVerificationScreen
+import com.example.doctorappoint.ui.theme.user.RegisterScreen
+
+class MainActivity : ComponentActivity() {
+    @SuppressLint("ViewModelConstructorInComposable")
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            MyApp()
+        }
+    }
+
+    override fun onBackPressed() {
+        // If user is logged in, let the composable handle back navigation
+        // This prevents going back to welcome screen while logged in
+        if (LoginManager.isLoggedIn(this)) {
+            // Don't call super.onBackPressed() - let the composable handle it
+        } else {
+            super.onBackPressed()
+        }
+    }
+}
+
+@Composable
+fun MyApp() {
+    val navController = rememberNavController()
+    val context = navController.context
+    
+    var isLoggedIn by remember { mutableStateOf(LoginManager.isLoggedIn(context)) }
+    
+    DoctorAppointTheme {
+        NavHost(
+            navController = navController, 
+            startDestination = if (isLoggedIn) "main" else "welcome"
+        ) {
+            composable("welcome") {
+                WelcomeScreen(
+                    onLoginClick = { navController.navigate("login") },
+                    onRegisterClick = { navController.navigate("register") }
+                )
+            }
+            
+            // Login flow
+            composable("login") {
+                LoginScreen(
+                    onLoginClick = {
+                        isLoggedIn = true
+                        navController.navigate("main") {
+                            popUpTo("welcome") { inclusive = true }
+                        }
+                    },
+                    onFogotPasswordClick = { },
+                    onRegisterClick = { navController.navigate("register") }
+                )
+            }
+            
+            composable("register") {
+                RegisterScreen(
+                    navController = navController,
+                    onLoginClick = { navController.navigate("login") },
+                    onOtpVerificationClick = { phoneNumber, verificationId ->
+                        navController.navigate("otpVerification/$phoneNumber/$verificationId")
+                    }
+                )
+            }
+            
+            composable("otpVerification/{phoneNumber}/{verificationId}") { backStackEntry ->
+                val phoneNumber = backStackEntry.arguments?.getString("phoneNumber")
+                val verificationId = backStackEntry.arguments?.getString("verificationId")
+
+                if (phoneNumber != null && verificationId != null) {
+                    OtpVerificationScreen(
+                        navController = navController,
+                        phoneNumber = phoneNumber,
+                        verificationId = verificationId,
+                        onHomeClick = {
+                            isLoggedIn = true
+                            navController.navigate("main") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        }
+                    )
+                } else {
+                    navController.popBackStack()
+                }
+            }
+            
+            // Main app screens (only accessible when logged in)
+            composable("main") {
+                MainScreen(
+                    navController = navController,
+                    onLogout = {
+                        isLoggedIn = false
+                        LoginManager.logout(context)
+                        navController.navigate("welcome") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            
+            composable("personalInfo") {
+                val user = LoginManager.getUser(context)
+                PersonalInfoScreen(
+                    navController = navController,
+                    user = user
+                )
+            }
+            
+            composable("selectDepartment") {
+                SelectDepartmentScreen(navController = navController)
+            }
+            
+            composable("doctorList") {
+                DoctorListScreen(navController = navController)
+            }
+        }
+    }
+}
+
+
+

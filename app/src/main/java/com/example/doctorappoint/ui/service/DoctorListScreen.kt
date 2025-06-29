@@ -36,10 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.doctorappoint.component.BackBtnAndTitle
-import com.example.doctorappoint.component.SearchBar
-import com.example.doctorappoint.component.SpacerHeight
-import com.example.doctorappoint.component.SpacerWidth
+import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.SearchBar
+import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.common.SpacerWidth
 import com.example.doctorappoint.model.Doctor
 import com.example.doctorappoint.model.dummyDoctorList
 import com.example.doctorappoint.ui.theme.SecondaryLight
@@ -77,6 +77,7 @@ fun DoctorListScreen(
         SearchBar(
             modifier = Modifier.fillMaxWidth(),
             searchString = searchString,
+            placeholder = "Tìm kiếm bác sĩ",
             onSearchStringChange = { searchString = it }
         )
 

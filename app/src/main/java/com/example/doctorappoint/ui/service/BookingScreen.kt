@@ -37,7 +37,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,10 +55,10 @@ import androidx.compose.ui.text.font.FontWeight
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.doctorappoint.component.BackBtnAndTitle
-import com.example.doctorappoint.component.PrimaryActionButton
-import com.example.doctorappoint.component.SpacerHeight
-import com.example.doctorappoint.component.SpacerWidth
+import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.PrimaryActionButton
+import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.common.SpacerWidth
 import com.example.doctorappoint.model.Doctor
 import com.example.doctorappoint.model.dummyDoctorList
 import com.example.doctorappoint.ui.theme.BorderColor
