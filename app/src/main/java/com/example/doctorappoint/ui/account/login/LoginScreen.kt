@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -47,8 +50,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
+import com.example.doctorappoint.common.BackBtnAndTitle
 import com.example.doctorappoint.common.LoginManager
+import com.example.doctorappoint.common.PhoneNumberUtils
 import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
@@ -58,6 +64,7 @@ import com.example.doctorappoint.ui.theme.PrimaryColor
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun LoginScreen(
+    navController: NavHostController,
     modifier: Modifier = Modifier,
     onLoginClick: () -> Unit = {},
     onFogotPasswordClick: () -> Unit = {},
@@ -69,6 +76,8 @@ fun LoginScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var keepSignedIn by remember { mutableStateOf(false) }
+    var phoneNumberError by remember { mutableStateOf("") }
+    var loginError by remember { mutableStateOf("") }
 
     val loginState by loginViewModel.loginState.collectAsState()
 
@@ -82,11 +91,13 @@ fun LoginScreen(
                     // Navigate to home screen
                     onLoginClick()
                 } else {
-                    Toast.makeText(context, state.data.message, Toast.LENGTH_SHORT).show()
+
+                    loginError = state.data.message
                 }
             }
             is NetworkResponse.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+
+                loginError = state.message
             }
             is NetworkResponse.Loading -> {
                 // Loading state - no action needed
@@ -98,17 +109,23 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(vertical = 48.dp, horizontal = 16.dp),
+            .padding(vertical = 32.dp, horizontal = 16.dp),
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.Top
     ) {
 
-        SpacerHeight(24.dp)
+        BackBtnAndTitle(title= "Đăng nhập",
+            onBackClick = {
+                navController.popBackStack()
+            }
+        )
+        SpacerHeight(18.dp)
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ){
+
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -143,10 +160,24 @@ fun LoginScreen(
             val focusManager = LocalFocusManager.current
                 OutlinedTextField(
                     value = phoneNumber,
-                    onValueChange = { phoneNumber = it },
+                    onValueChange = { 
+                        phoneNumber = it
+
+                        if (phoneNumberError.isNotEmpty()) {
+                            phoneNumberError = ""
+                        }
+                        if (loginError.isNotEmpty()) {
+                            loginError = ""
+                        }
+
+                        if (it.isNotEmpty() && !PhoneNumberUtils.isValidVietnamesePhoneNumber(it)) {
+                            phoneNumberError = context.getString(R.string.invalid_phone)
+                        }
+                    },
                     placeholder = { Text("Số điện thoại...") },
                     leadingIcon = {
-                        Icon(painter = painterResource(id = R.drawable.profile),
+                        Icon (
+                            imageVector = Icons.Default.Phone,
                             contentDescription = "Phone Icon",
                             modifier = Modifier.size(28.dp)
                         )
@@ -159,8 +190,19 @@ fun LoginScreen(
                             focusManager.moveFocus(FocusDirection.Down)
                         }
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = phoneNumberError.isNotEmpty()
                 )
+                
+
+                if (phoneNumberError.isNotEmpty()) {
+                    Text(
+                        text = phoneNumberError,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
                 Text(
                     text = "Mật khẩu",
                     fontSize = 16.sp,
@@ -169,10 +211,16 @@ fun LoginScreen(
                 )
                 OutlinedTextField(
                     value = password,
-                    onValueChange = {  password = it   },
+                    onValueChange = {  
+                        password = it
+                        if (loginError.isNotEmpty()) {
+                            loginError = ""
+                        }
+                    },
                     placeholder = { Text("Nhập mật khẩu...") },
                     leadingIcon = {
-                        Icon(painter = painterResource(id = R.drawable.profile),
+                        Icon(
+                            imageVector = Icons.Default.Lock,
                             contentDescription = "Password Icon",
                             modifier = Modifier.size(28.dp)
                         )
@@ -185,7 +233,7 @@ fun LoginScreen(
                         onDone = {
                             focusManager.clearFocus()
                             // Handle login
-                            if(checkEmptyFields(context,phoneNumber,password)){
+                            if(checkEmptyFields(context, phoneNumber, password) { error -> phoneNumberError = error }){
                                 loginViewModel.login(phoneNumber, password)
                             }
                         }
@@ -206,21 +254,18 @@ fun LoginScreen(
                     Text("Lưu thông tin đăng nhập")
                 }
 
-                // Error message display
-                if (loginState is NetworkResponse.Error) {
-                    val errorMessage = (loginState as NetworkResponse.Error).message
-                    if (errorMessage.contains("Incorrect phone number or password")) {
-                        Text(
-                            text = "Số điện thoại hoặc mật khẩu không đúng",
-                            color = Color.Red,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
+                // Login error message display
+                if (loginError.isNotEmpty()) {
+                    Text(
+                        text = loginError,
+                        color = Color.Red,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
 
                 PrimaryActionButton(text = "Đăng nhập", onClick = {
-                    if(checkEmptyFields(context,phoneNumber,password)){
+                    if(checkEmptyFields(context, phoneNumber, password) { error -> phoneNumberError = error }){
                         loginViewModel.login(phoneNumber, password)
                     }
                 })
@@ -253,24 +298,21 @@ fun LoginScreen(
         }
     }
 
-private fun checkEmptyFields(context: Context,phoneNumber: String, password: String): Boolean {
-    if(phoneNumber.isEmpty()){
-        Toast.makeText(context, R.string.empty_phone, Toast.LENGTH_SHORT).show();
-        return false;
+private fun checkEmptyFields(context: Context, phoneNumber: String, password: String, onPhoneError: (String) -> Unit): Boolean {
+    if (phoneNumber.isEmpty()) {
+        onPhoneError(context.getString(R.string.empty_phone))
+        return false
     }
 
-    if(phoneNumber.length != 10){
-        Toast.makeText(context, R.string.invalid_phone, Toast.LENGTH_SHORT).show();
-        return false;
-    }
-//    if(phoneNumber.startsWith("0")){
-//        Toast.makeText(context, R.string.except_first_zero_number, Toast.LENGTH_SHORT).show();
-//        return false;
-//    }
 
-    if(password.isEmpty()){
-        Toast.makeText(context, R.string.empty_password, Toast.LENGTH_SHORT).show();
-        return false;
+    if (!PhoneNumberUtils.isValidVietnamesePhoneNumber(phoneNumber)) {
+        onPhoneError(context.getString(R.string.invalid_phone))
+        return false
+    }
+
+    if (password.isEmpty()) {
+        Toast.makeText(context, R.string.empty_password, Toast.LENGTH_SHORT).show()
+        return false
     }
 
     return true

@@ -1,7 +1,6 @@
-package com.example.doctorappoint.ui.theme.user
+package com.example.doctorappoint.ui.account.register
 
 import android.app.Activity
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,14 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,15 +35,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
+import com.example.doctorappoint.common.BackBtnAndTitle
 import com.example.doctorappoint.common.PhoneNumberUtils
 import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
-import com.example.doctorappoint.data.api.NetworkResponse
-import com.example.doctorappoint.ui.account.register.OtpViewModel
 import com.example.doctorappoint.ui.theme.PrimaryColor
 
 @Composable
@@ -57,39 +54,44 @@ fun RegisterScreen(
     var phoneNumber by remember { mutableStateOf("") }
     val context = LocalContext.current
     val activity = context as? Activity
-    val otpViewModel: OtpViewModel = viewModel()
-    
-    val otpState by otpViewModel.otpState.collectAsState()
-    val verificationId by otpViewModel.verificationId.collectAsState()
 
-    LaunchedEffect(otpState) {
-        when (val state = otpState) {
-            is NetworkResponse.Success -> {
-                Toast.makeText(context, "Mã OTP đã được gửi", Toast.LENGTH_SHORT).show()
-                // Navigate to OTP verification screen with the verificationId from ViewModel
-                verificationId?.let { id ->
-                    onOtpVerificationClick(phoneNumber, id)
-                }
-            }
-            is NetworkResponse.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-            }
-            is NetworkResponse.Loading -> {
-                // Loading state - no action needed
-            }
-        }
-    }
+    var phoneNumberError by remember { mutableStateOf("") }
+    var otpError by remember { mutableStateOf("") }
+//    val otpState by otpViewModel.otpState.collectAsState()
+//    val verificationId by otpViewModel.verificationId.collectAsState()
+//
+//    LaunchedEffect(otpState) {
+//        when (val state = otpState) {
+//            is NetworkResponse.Success -> {
+//                Toast.makeText(context, "Mã OTP đã được gửi", Toast.LENGTH_SHORT).show()
+//                // Navigate to OTP verification screen with the verificationId from ViewModel
+//                verificationId?.let { id ->
+//                    onOtpVerificationClick(phoneNumber, id)
+//                }
+//            }
+//            is NetworkResponse.Error -> {
+//                otpError = state.message
+//            }
+//            is NetworkResponse.Loading -> {
+//                // Loading state - no action needed
+//            }
+//        }
+//    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(vertical = 48.dp, horizontal = 16.dp),
+            .padding(vertical = 32.dp, horizontal = 16.dp),
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.Top
     ) {
-
-        SpacerHeight(24.dp)
+        BackBtnAndTitle(title= "Đăng ký",
+            onBackClick = {
+                navController.popBackStack()
+            }
+        )
+        SpacerHeight(18.dp)
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.Start,
@@ -127,36 +129,63 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = phoneNumber,
-                onValueChange = { phoneNumber = it },
+                onValueChange = { 
+                    phoneNumber = it
+                    // Clear errors when user starts typing
+                    if (phoneNumberError.isNotEmpty()) {
+                        phoneNumberError = ""
+                    }
+                    if (otpError.isNotEmpty()) {
+                        otpError = ""
+                    }
+
+                    if (it.isNotEmpty() && !PhoneNumberUtils.isValidVietnamesePhoneNumber(it)) {
+                        phoneNumberError =  context.getString(R.string.invalid_phone)
+                    }
+                },
                 placeholder = { Text("Số điện thoại...") },
                 leadingIcon = {
                     Icon(
-                        painter = painterResource(id = R.drawable.profile),
+                       imageVector = Icons.Default.Phone,
                         contentDescription = "Phone Icon",
                         modifier = Modifier.size(28.dp)
                     )
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                isError = phoneNumberError.isNotEmpty()
             )
+            
+            // Display phone number validation error
+            if (phoneNumberError.isNotEmpty()) {
+                Text(
+                    text = phoneNumberError,
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
+            
+            // Display OTP error
+            if (otpError.isNotEmpty()) {
+                Text(
+                    text = otpError,
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
             SpacerHeight(16.dp)
 
             PrimaryActionButton(
                 text = "Đăng ký", 
                 onClick = {
-                    
                     if (!PhoneNumberUtils.isValidVietnamesePhoneNumber(phoneNumber)) {
-                        Toast.makeText(context, "Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại gồm 10 chữ số bắt đầu bằng số 0.", Toast.LENGTH_LONG).show()
+                        phoneNumberError = R.string.invalid_phone.toString()
                         return@PrimaryActionButton
                     }
-
-                    if (activity != null) {
-                        // Format for SMS using utility
-                        val fullPhoneNumber = PhoneNumberUtils.toInternationalFormat(phoneNumber)
-                        otpViewModel.sendOtp(fullPhoneNumber, activity)
-                    } else {
-                        Toast.makeText(context, "Lỗi ứng dụng: Không thể lấy Activity.", Toast.LENGTH_SHORT).show()
-                    }
+                    val fullPhoneNumber = PhoneNumberUtils.toInternationalFormat(phoneNumber)
+                  //  otpViewModel.sendOtp(fullPhoneNumber)
                 }
             )
 

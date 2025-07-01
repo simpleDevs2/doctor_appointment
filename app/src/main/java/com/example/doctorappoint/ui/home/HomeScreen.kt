@@ -209,8 +209,6 @@ fun ServicesGrid(modifier: Modifier = Modifier,navController: NavHostController)
                 modifier = Modifier.weight(1f),
                 iconResId = R.drawable.stethoscope,
                 onclick = {
-                    // Điều hướng đến màn hình đặt khám chuyên khoa
-
                      navController.navigate("selectDepartment")
                 }
             )

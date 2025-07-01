@@ -14,6 +14,8 @@ class LoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow<NetworkResponse<LoginResponse>>(NetworkResponse.Loading)
     val loginState: StateFlow<NetworkResponse<LoginResponse>> = _loginState
 
+
+
     fun login(phone: String, password: String) {
         viewModelScope.launch {
             try {
@@ -34,7 +36,7 @@ class LoginViewModel : ViewModel() {
                 } else {
                     Log.w("LoginViewModel", "Login failed: ${response.message}")
                     // Handle authentication failure
-                    _loginState.value = NetworkResponse.Error("Incorrect phone number or password")
+                    _loginState.value = NetworkResponse.Error("Số điện thoại hoặc mật khẩu không chính xác")
                 }
                 
             } catch (e: Exception) {
@@ -42,13 +44,13 @@ class LoginViewModel : ViewModel() {
                 Log.e("LoginViewModel", "Exception message: ${e.message}")
                 Log.e("LoginViewModel", "Exception localized message: ${e.localizedMessage}")
                 
-                // Check if it's an authentication error (401, 403, etc.)
+                // Check if it's an authentication error 
                 val errorMessage = when {
                     e.message?.contains("401") == true || 
                     e.message?.contains("403") == true ||
                     e.message?.contains("Unauthorized") == true ||
                     e.message?.contains("Forbidden") == true -> {
-                        "Incorrect phone number or password"
+                        "Số điện thoại hoặc mật khẩu không chính xác"
                     }
                     e.message?.contains("404") == true -> {
                         "User not found"
@@ -69,4 +71,6 @@ class LoginViewModel : ViewModel() {
     fun clearError() {
         _loginState.value = NetworkResponse.Loading
     }
+
+
 }

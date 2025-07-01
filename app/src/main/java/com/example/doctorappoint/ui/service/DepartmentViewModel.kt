@@ -24,7 +24,7 @@ class DepartmentViewModel : ViewModel() {
                 _departments.value = NetworkResponse.Loading
                 val departmentItems = RetrofitInstance.getDepartmentList().getDepartments()
                 
-                // Transform API response to UI model
+
                 val uiDepartments = departmentItems.map { item ->
                     Department(
                         name = item.name,

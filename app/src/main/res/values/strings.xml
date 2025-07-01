@@ -3,7 +3,6 @@
     <string name="empty_phone">Số điện thoại không được để trống </string>
     <string name="empty_password">Mật khẩu không được để trống </string>
     <string name="invalid_phone">Số điện thoại không hợp lệ </string>
-    <string name="except_first_zero_number">Vui lòng nhập số điện thoại bắt đầu ngoại trừ số 0</string>
     <string name="empty_otp">Vui lòng nhập mã otp</string>
     <string name="empty_name">Vui lòng nhập tên</string>
     <string name="empty_email">Vui lòng nhập email</string>

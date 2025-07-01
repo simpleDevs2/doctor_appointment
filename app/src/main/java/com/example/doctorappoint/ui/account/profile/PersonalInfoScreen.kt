@@ -1,6 +1,7 @@
 package com.example.doctorappoint.ui.account.profile
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -29,6 +32,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,14 +42,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.LoginManager
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.data.api.NetworkResponse
+import com.example.doctorappoint.model.UpdateProfile
 import com.example.doctorappoint.model.User
 import kotlinx.datetime.LocalDate
 import network.chaintech.kmp_date_time_picker.ui.datepicker.WheelDatePickerView
@@ -56,8 +68,12 @@ import network.chaintech.kmp_date_time_picker.utils.now
 fun PersonalInfoScreen(
     modifier: Modifier = Modifier,
     navController: NavHostController,
-    user: User?
+    userState: MutableState<User?>,
+    onProfileUpdated: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val personalInfoViewModel: PersonalInfoViewModel = viewModel()
+    val updateProfileState by personalInfoViewModel.updateProfileState.collectAsState()
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -68,14 +84,47 @@ fun PersonalInfoScreen(
             title = "Thông tin cá nhân",
             onBackClick = { navController.popBackStack() }
         )
-            ProfileHeader(user)
-            SpacerHeight(24.dp)
-            PersonalInfoForm(user)
+        ProfileHeader(userState.value)
+        SpacerHeight(24.dp)
 
+        // Add a key to force recomposition when profile is updated
+        val reloadKey = remember { mutableStateOf(0) }
+
+        LaunchedEffect(updateProfileState) {
+            if (updateProfileState is NetworkResponse.Success) {
+                reloadKey.value++
+            }
+        }
+
+        PersonalInfoForm(
+            key = reloadKey.value,
+            user = userState.value,
+            onSave = { updateProfile ->
+                val token = LoginManager.getToken(context)
+                if(!token.isNullOrEmpty()){
+                    personalInfoViewModel.updateProfile(token, updateProfile)
+                }
+            }
+        )
+    }
+
+
+    LaunchedEffect(updateProfileState) {
+        when (val state = updateProfileState) {
+            is NetworkResponse.Success -> {
+                LoginManager.saveLoginData(context, state.data.data, state.data.data.api_token)
+                userState.value = state.data.data
+                Toast.makeText(context, "Cập nhật thành công!", Toast.LENGTH_SHORT).show()
+
+                onProfileUpdated()
+            }
+            is NetworkResponse.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
+        }
     }
 }
-
-
 
 @Composable
 fun ProfileHeader(user: User?) {
@@ -109,25 +158,39 @@ fun ProfileHeader(user: User?) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PersonalInfoForm(user: User?) {
-
+fun PersonalInfoForm(
+    key: Int = 0,
+    user: User?,
+    onSave: (UpdateProfile) -> Unit
+) {
     val fullName = user?.name ?: ""
     val nameParts = fullName.split(" ")
     val firstName = nameParts.lastOrNull() ?: ""
     val lastNameAndMiddleName = nameParts.dropLast(1).joinToString(" ")
+    val context = LocalContext.current
 
-    
+
+    val originalLastNameAndMiddleName = remember { lastNameAndMiddleName }
+    val originalFirstName = remember { firstName }
+    val originalGender = remember { user?.gender ?: "" }
+    val originalAddress = remember { user?.address ?: "" }
+    val originalBirthdate = remember { user?.birthdate ?: "" }
+
     var lastNameAndMiddleNameState by remember { mutableStateOf(lastNameAndMiddleName) }
     var firstNameState by remember { mutableStateOf(firstName) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var selectedGender by remember { mutableStateOf(user?.gender ?: "") }
     var address by remember { mutableStateOf(user?.address ?: "") }
 
+    // Error states for validation
+    var lastNameError by remember { mutableStateOf("") }
+    var firstNameError by remember { mutableStateOf("") }
+
 
     LaunchedEffect(user?.birthdate) {
         user?.birthdate?.let { birthdateStr ->
             try {
-                // Assuming birthdate is in format "YYYY-MM-DD"
+
                 val parts = birthdateStr.split("-")
                 if (parts.size == 3) {
                     selectedDate = LocalDate(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
@@ -139,6 +202,8 @@ fun PersonalInfoForm(user: User?) {
     }
 
     val phoneNumber = user?.phone ?: ""
+    val focusManager = LocalFocusManager.current
+
 
     Column(
         modifier = Modifier
@@ -158,19 +223,63 @@ fun PersonalInfoForm(user: User?) {
         LabeledInputField(
             label = "Họ và tên lót",
             value = lastNameAndMiddleNameState,
-            onValueChange = { lastNameAndMiddleNameState = it },
+            onValueChange = {
+                lastNameAndMiddleNameState = it
+                // Clear error when user starts typing
+                if (lastNameError.isNotEmpty()) {
+                    lastNameError = ""
+                }
+                // Validate name format
+                if (it.isNotEmpty() && it.any { char -> char.isDigit() }) {
+                    lastNameError = "Họ và tên lót không được chứa số"
+                }
+            },
             placeholder = "Họ và tên đệm...",
-            isLocked = false
+            isLocked = false,
+            isError = lastNameError.isNotEmpty(),
+            onImeActionDone = { focusManager.clearFocus() }
         )
+
+        // Display last name error
+        if (lastNameError.isNotEmpty()) {
+            Text(
+                text = lastNameError,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
 
         // First Name
         LabeledInputField(
             label = "Tên",
             value = firstNameState,
-            onValueChange = { firstNameState = it },
+            onValueChange = {
+                firstNameState = it
+                // Clear error when user starts typing
+                if (firstNameError.isNotEmpty()) {
+                    firstNameError = ""
+                }
+                // Validate name format
+                if (it.isNotEmpty() && it.any { char -> char.isDigit() }) {
+                    firstNameError = "Tên không được chứa số"
+                }
+            },
             placeholder = "Tên...",
-            isLocked = false
+            isLocked = false,
+            isError = firstNameError.isNotEmpty(),
+            onImeActionDone = { focusManager.clearFocus() }
         )
+
+        // Display first name error
+        if (firstNameError.isNotEmpty()) {
+            Text(
+                text = firstNameError,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -202,16 +311,55 @@ fun PersonalInfoForm(user: User?) {
             value = address,
             onValueChange = { address = it },
             placeholder = "Địa chỉ...",
-            isLocked = false
+            isLocked = false,
+            onImeActionDone = { focusManager.clearFocus() }
         )
 
         SpacerHeight(16.dp)
+        fun hasChanges(): Boolean {
+            val currentFullName = "$lastNameAndMiddleNameState $firstNameState"
+            val originalFullName = "$originalLastNameAndMiddleName $originalFirstName"
+
+            val currentBirthdate = selectedDate?.let { "${it.year}-${it.monthNumber.toString().padStart(2, '0')}-${it.dayOfMonth.toString().padStart(2, '0')}" } ?: ""
+
+            return currentFullName != originalFullName ||
+                    selectedGender != originalGender ||
+                    address != originalAddress ||
+                    currentBirthdate != originalBirthdate
+        }
+
+        fun isValidName(name: String): Boolean{
+            val regex = Regex("^[\\p{L}\\s]+$")
+            return regex.matches(name)
+        }
 
         Button(
             onClick = {
-                // Handle save action
-                Log.d("PersonalInfoScreen", "Saving Data: Name: $firstNameState $lastNameAndMiddleNameState, DOB: $selectedDate, Gender: $selectedGender, Address: $address")
-                // TODO: Implement API call to update user information
+                // Validate names first
+                if (lastNameAndMiddleNameState.isNotEmpty() && !isValidName(lastNameAndMiddleNameState)) {
+                    lastNameError = "Họ và tên lót không hợp lệ"
+                    return@Button
+                }
+
+                if (firstNameState.isNotEmpty() && !isValidName(firstNameState)) {
+                    firstNameError = "Tên không hợp lệ"
+                    return@Button
+                }
+                
+                if (!hasChanges()) {
+                    Toast.makeText(context, "Không có thay đổi nào để lưu", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+                
+                val selectedDateString = selectedDate?.let { "${it.year}-${it.monthNumber.toString().padStart(2, '0')}-${it.dayOfMonth.toString().padStart(2, '0')}" } ?: ""
+                val updateProfile = UpdateProfile(
+                    address = address,
+                    birthdate = selectedDateString,
+                    gender = selectedGender,
+                    name = "$lastNameAndMiddleNameState $firstNameState",
+                    phone = phoneNumber
+                )
+                onSave(updateProfile)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -227,7 +375,10 @@ fun LabeledInputField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     isLocked: Boolean = false,
-    modifier: Modifier = Modifier
+    isError: Boolean = false,
+    modifier: Modifier = Modifier,
+    imeAction: ImeAction = ImeAction.Done,
+    onImeActionDone: (() -> Unit)? = null
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -255,13 +406,23 @@ fun LabeledInputField(
             },
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
+            isError = isError,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = imeAction
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    onImeActionDone?.invoke()
+                }
+            ),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF007BFF), // Example focus color
-                unfocusedBorderColor = Color.LightGray,
+                focusedBorderColor = if (isError) Color.Red else Color(0xFF007BFF),
+                unfocusedBorderColor = if (isError) Color.Red else Color.LightGray,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
                 disabledBorderColor = Color.LightGray,
-                disabledTextColor = Color.Gray
+                disabledTextColor = Color.Gray,
+                errorBorderColor = Color.Red
             )
         )
     }

@@ -19,12 +19,12 @@ import com.example.doctorappoint.common.LoginManager
 import com.example.doctorappoint.navigation.WelcomeScreen
 import com.example.doctorappoint.ui.account.login.LoginScreen
 import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
+import com.example.doctorappoint.ui.account.register.RegisterScreen
 import com.example.doctorappoint.ui.home.MainScreen
 import com.example.doctorappoint.ui.theme.DoctorAppointTheme
 import com.example.doctorappoint.ui.theme.service.DoctorListScreen
 import com.example.doctorappoint.ui.theme.service.SelectDepartmentScreen
 import com.example.doctorappoint.ui.theme.user.OtpVerificationScreen
-import com.example.doctorappoint.ui.theme.user.RegisterScreen
 
 class MainActivity : ComponentActivity() {
     @SuppressLint("ViewModelConstructorInComposable")
@@ -37,15 +37,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onBackPressed() {
-        // If user is logged in, let the composable handle back navigation
-        // This prevents going back to welcome screen while logged in
-        if (LoginManager.isLoggedIn(this)) {
-            // Don't call super.onBackPressed() - let the composable handle it
-        } else {
-            super.onBackPressed()
-        }
-    }
+
 }
 
 @Composable
@@ -54,6 +46,7 @@ fun MyApp() {
     val context = navController.context
     
     var isLoggedIn by remember { mutableStateOf(LoginManager.isLoggedIn(context)) }
+
     
     DoctorAppointTheme {
         NavHost(
@@ -70,6 +63,7 @@ fun MyApp() {
             // Login flow
             composable("login") {
                 LoginScreen(
+                    navController = navController,
                     onLoginClick = {
                         isLoggedIn = true
                         navController.navigate("main") {
@@ -117,8 +111,6 @@ fun MyApp() {
                 MainScreen(
                     navController = navController,
                     onLogout = {
-                        isLoggedIn = false
-                        LoginManager.logout(context)
                         navController.navigate("welcome") {
                             popUpTo(0) { inclusive = true }
                         }
@@ -128,9 +120,10 @@ fun MyApp() {
             
             composable("personalInfo") {
                 val user = LoginManager.getUser(context)
+                val userState = remember { mutableStateOf(user) }
                 PersonalInfoScreen(
                     navController = navController,
-                    user = user
+                    userState = userState
                 )
             }
             

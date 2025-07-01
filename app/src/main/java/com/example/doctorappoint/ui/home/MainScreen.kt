@@ -1,6 +1,5 @@
 package com.example.doctorappoint.ui.home
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -39,13 +38,7 @@ fun MainScreen(
     val navBackStackEntry by bottomBarNavController.currentBackStackEntryAsState()
     val context = LocalContext.current
 
-    BackHandler {
-        if (navBackStackEntry?.destination?.route == "home") {
-            android.os.Process.killProcess(android.os.Process.myPid())
-        } else {
-            bottomBarNavController.popBackStack()
-        }
-    }
+
 
     data class BottomNavigationItem(
         val title: String,

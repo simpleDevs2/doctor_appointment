@@ -40,10 +40,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
 import com.example.doctorappoint.common.BackButton
+import com.example.doctorappoint.common.PhoneNumberUtils
 import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
-import com.example.doctorappoint.common.PhoneNumberUtils
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.ui.account.register.OtpViewModel
 import com.example.doctorappoint.ui.theme.PrimaryColor
@@ -64,7 +64,7 @@ fun OtpVerificationScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val otpViewModel: OtpViewModel = viewModel()
-    
+
     val verificationState by otpViewModel.verificationState.collectAsState()
 
     // Set the verification ID in the ViewModel when the screen is created
@@ -89,7 +89,6 @@ fun OtpVerificationScreen(
             is NetworkResponse.Success -> {
                 if (state.data) {
                     Toast.makeText(context, "Xác thực OTP thành công!", Toast.LENGTH_SHORT).show()
-                    // Clear states before navigation to prevent memory leaks
                     otpViewModel.clearStates()
                     onHomeClick()
                 }
