@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,11 +46,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
 import com.example.doctorappoint.common.LoginManager
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import com.example.doctorappoint.ui.theme.SecondaryColor
 
@@ -62,11 +65,27 @@ fun AccountScreen(
     val context = LocalContext.current
     var user by remember { mutableStateOf(LoginManager.getUser(context)) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    val logoutViewModel : AccountViewModel = viewModel()
+    val logoutState by logoutViewModel.logoutState.collectAsState()
     
     LaunchedEffect(Unit) {
         user = LoginManager.getUser(context)
     }
-    
+    LaunchedEffect(logoutState) {
+        when (logoutState) {
+            is NetworkResponse.Success -> {
+                LoginManager.logout(context)
+                Toast.makeText(context, "Đăng xuất thành công!", Toast.LENGTH_SHORT).show()
+                onLogout()
+            }
+            is NetworkResponse.Error -> {
+                Toast.makeText(context, (logoutState as NetworkResponse.Error).message, Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
+        }
+    }
+
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -129,9 +148,13 @@ fun AccountScreen(
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = {
-                                showLogoutDialog = false
-                                Toast.makeText(context, "Đã đăng xuất", Toast.LENGTH_SHORT).show()
-                                onLogout()
+                                val token = LoginManager.getToken(context)
+
+                                if (!token.isNullOrEmpty()) {
+                                    logoutViewModel.logout(token)
+                                }
+                              //  LoginManager.logout(context)
+
                             },
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                                 containerColor = PrimaryColor
