@@ -37,6 +37,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,11 +70,18 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.doctorappoint.ui.service.DepartmentViewModel
+import com.example.doctorappoint.data.api.NetworkResponse
 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun BookingScreen(modifier: Modifier = Modifier){
+fun BookingScreen(
+    modifier: Modifier = Modifier,
+    departmentId :Int,
+
+){
     val title = "Đặt lịch"
     val doctor =  dummyDoctorList.first()
 
@@ -85,8 +93,16 @@ fun BookingScreen(modifier: Modifier = Modifier){
 
     var pickedDate by remember { mutableStateOf(LocalDate.now()) }
     var pickedTime by remember { mutableStateOf(LocalTime.NOON) }
+    val  departmentViewModel: DepartmentViewModel = viewModel()
+    val departmentsState by departmentViewModel.departments.collectAsState()
 
-
+    val departmentName = when (departmentsState) {
+        is NetworkResponse.Success -> {
+            val departments = (departmentsState as NetworkResponse.Success<List<com.example.doctorappoint.model.Department>>).data
+            departments.find { it.id == departmentId }?.name ?: ""
+        }
+        else -> ""
+    }
 
     Column(
         modifier = modifier
@@ -106,7 +122,7 @@ fun BookingScreen(modifier: Modifier = Modifier){
         SpacerHeight(32.dp)
         DateTimeSelectionRow(
             title = "Chuyên khoa",
-            selectedValue = selectedTime,
+            selectedValue = departmentName,
             onRowClick = {  }
         )
         SpacerHeight(32.dp)
@@ -365,7 +381,7 @@ fun DatePickerBottomSheet(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Header: Month and Year + arrows
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
