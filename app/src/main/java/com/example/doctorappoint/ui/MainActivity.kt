@@ -22,6 +22,7 @@ import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
 import com.example.doctorappoint.ui.account.register.RegisterScreen
 import com.example.doctorappoint.ui.home.MainScreen
 import com.example.doctorappoint.ui.theme.DoctorAppointTheme
+import com.example.doctorappoint.ui.theme.service.BookingScreen
 import com.example.doctorappoint.ui.theme.service.DoctorListScreen
 import com.example.doctorappoint.ui.theme.service.SelectDepartmentScreen
 import com.example.doctorappoint.ui.theme.user.OtpVerificationScreen
@@ -44,13 +45,13 @@ class MainActivity : ComponentActivity() {
 fun MyApp() {
     val navController = rememberNavController()
     val context = navController.context
-    
+
     var isLoggedIn by remember { mutableStateOf(LoginManager.isLoggedIn(context)) }
 
-    
+
     DoctorAppointTheme {
         NavHost(
-            navController = navController, 
+            navController = navController,
             startDestination = if (isLoggedIn) "main" else "welcome"
         ) {
             composable("welcome") {
@@ -59,7 +60,7 @@ fun MyApp() {
                     onRegisterClick = { navController.navigate("register") }
                 )
             }
-            
+
             // Login flow
             composable("login") {
                 LoginScreen(
@@ -74,7 +75,7 @@ fun MyApp() {
                     onRegisterClick = { navController.navigate("register") }
                 )
             }
-            
+
             composable("register") {
                 RegisterScreen(
                     navController = navController,
@@ -84,7 +85,7 @@ fun MyApp() {
                     }
                 )
             }
-            
+
             composable("otpVerification/{phoneNumber}/{verificationId}") { backStackEntry ->
                 val phoneNumber = backStackEntry.arguments?.getString("phoneNumber")
                 val verificationId = backStackEntry.arguments?.getString("verificationId")
@@ -105,7 +106,7 @@ fun MyApp() {
                     navController.popBackStack()
                 }
             }
-            
+
             // Main app screens (only accessible when logged in)
             composable("main") {
                 MainScreen(
@@ -117,7 +118,7 @@ fun MyApp() {
                     }
                 )
             }
-            
+
             composable("personalInfo") {
                 val user = LoginManager.getUser(context)
                 val userState = remember { mutableStateOf(user) }
@@ -126,17 +127,22 @@ fun MyApp() {
                     userState = userState
                 )
             }
-            
+
             composable("selectDepartment") {
                 SelectDepartmentScreen(navController = navController)
             }
-            
+            composable("booking/{departmentId}"){ backStackEntry ->
+                val departmentId = backStackEntry.arguments?.getString("departmentId")?.toIntOrNull()?:-1
+                BookingScreen(
+                    departmentId = departmentId
+                )
+            }
+
             composable("doctorList") {
                 DoctorListScreen(navController = navController)
             }
         }
     }
 }
-
 
 
