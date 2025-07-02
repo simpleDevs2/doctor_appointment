@@ -185,6 +185,9 @@ fun PersonalInfoForm(
     // Error states for validation
     var lastNameError by remember { mutableStateOf("") }
     var firstNameError by remember { mutableStateOf("") }
+    var addressError by remember { mutableStateOf("") }
+    var birthdateError by remember { mutableStateOf("") }
+    var genderError by remember { mutableStateOf("") }
 
 
     LaunchedEffect(user?.birthdate) {
@@ -335,22 +338,44 @@ fun PersonalInfoForm(
 
         Button(
             onClick = {
-                // Validate names first
-                if (lastNameAndMiddleNameState.isNotEmpty() && !isValidName(lastNameAndMiddleNameState)) {
-                    lastNameError = "Họ và tên lót không hợp lệ"
+                // Validate fields
+                var allFieldsValid = true
+
+                if (lastNameAndMiddleNameState.isEmpty()) {
+                    lastNameError = "Họ và tên lót không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (firstNameState.isEmpty()) {
+                    firstNameError = "Tên không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (address.isEmpty()) {
+                    addressError = "Địa chỉ không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (selectedDate == null) {
+                    birthdateError = "Ngày sinh không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (selectedGender.isEmpty()) {
+                    genderError = "Giới tính không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (!allFieldsValid) {
+                    Toast.makeText(context, "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
 
-                if (firstNameState.isNotEmpty() && !isValidName(firstNameState)) {
-                    firstNameError = "Tên không hợp lệ"
-                    return@Button
-                }
-                
                 if (!hasChanges()) {
                     Toast.makeText(context, "Không có thay đổi nào để lưu", Toast.LENGTH_SHORT).show()
                     return@Button
                 }
-                
+
                 val selectedDateString = selectedDate?.let { "${it.year}-${it.monthNumber.toString().padStart(2, '0')}-${it.dayOfMonth.toString().padStart(2, '0')}" } ?: ""
                 val updateProfile = UpdateProfile(
                     address = address,
