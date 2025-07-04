@@ -21,6 +21,8 @@ import com.example.doctorappoint.ui.account.login.LoginScreen
 import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
 import com.example.doctorappoint.ui.account.register.RegisterScreen
 import com.example.doctorappoint.ui.home.MainScreen
+import com.example.doctorappoint.ui.service.BookingDateScreen
+import com.example.doctorappoint.ui.service.BookingTimeScreen
 import com.example.doctorappoint.ui.theme.DoctorAppointTheme
 import com.example.doctorappoint.ui.theme.service.BookingScreen
 import com.example.doctorappoint.ui.theme.service.DoctorListScreen
@@ -134,8 +136,18 @@ fun MyApp() {
             composable("booking/{departmentId}"){ backStackEntry ->
                 val departmentId = backStackEntry.arguments?.getString("departmentId")?.toIntOrNull()?:-1
                 BookingScreen(
+                    navController = navController,
                     departmentId = departmentId
                 )
+            }
+            composable("booking_date"){
+                BookingDateScreen(navController = navController)
+            }
+            composable(
+                "booking_time_screen/{selectedDate}"
+            ) { backStackEntry ->
+                val selectedDate = backStackEntry.arguments?.getString("selectedDate") ?: ""
+                BookingTimeScreen(navController, selectedDate = selectedDate)
             }
 
             composable("doctorList") {

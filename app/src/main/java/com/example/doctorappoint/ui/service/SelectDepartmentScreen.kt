@@ -1,5 +1,6 @@
 package com.example.doctorappoint.ui.theme.service
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -52,12 +53,11 @@ import com.example.doctorappoint.ui.service.DepartmentViewModel
 fun SelectDepartmentScreen(
     navController: NavHostController,
     modifier: Modifier = Modifier,
-    viewModel: DepartmentViewModel = viewModel()
 ) {
     var searchString by remember { mutableStateOf("") }
     val title = "Chọn chuyên khoa"
-    
-    val departmentsState by viewModel.departments.collectAsState()
+    val departmentViewModel : DepartmentViewModel = viewModel()
+    val departmentsState by departmentViewModel.departments.collectAsState()
 
     Column(
         modifier = modifier
@@ -80,7 +80,7 @@ fun SelectDepartmentScreen(
             onSearchStringChange = { searchString = it }
         )
         SpacerHeight(24.dp)
-        
+
         when (departmentsState) {
             is NetworkResponse.Loading -> {
                 Column(
@@ -97,7 +97,7 @@ fun SelectDepartmentScreen(
                     )
                 }
             }
-            
+
             is NetworkResponse.Success -> {
                 val departments = (departmentsState as NetworkResponse.Success<List<Department>>).data
                 val filteredDepartments = if (searchString.isNotEmpty()) {
@@ -105,7 +105,7 @@ fun SelectDepartmentScreen(
                 } else {
                     departments
                 }
-                
+
                 LazyColumn(
                     modifier = modifier
                         .fillMaxSize()
@@ -114,9 +114,10 @@ fun SelectDepartmentScreen(
                 ) {
                     items(filteredDepartments) { department ->
                         DepartmentCard(
-                            department = department, 
+                            department = department,
                             onClick = {
-                                navController.navigate("doctorList")
+                                Log.d("  "," id = ${department.id}")
+                                navController.navigate("booking/${department.id}")
                             }
                         )
                     }
@@ -136,7 +137,7 @@ fun SelectDepartmentScreen(
                     )
                     SpacerHeight(16.dp)
                     Button(
-                        onClick = { viewModel.refreshDepartments() },
+                        onClick = {departmentViewModel.refreshDepartments() },
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF0066CC)
                         )

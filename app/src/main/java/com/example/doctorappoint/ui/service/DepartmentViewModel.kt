@@ -1,5 +1,8 @@
 package com.example.doctorappoint.ui.service
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doctorappoint.data.api.NetworkResponse
@@ -8,6 +11,7 @@ import com.example.doctorappoint.model.Department
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 
 class DepartmentViewModel : ViewModel() {
     
@@ -27,8 +31,9 @@ class DepartmentViewModel : ViewModel() {
 
                 val uiDepartments = departmentItems.map { item ->
                     Department(
+                        id = item.id,
                         name = item.name,
-                        price = "150.000đ", // Default price since API doesn't provide it
+                        price = item.price,
                         description = null
                     )
                 }
@@ -42,5 +47,19 @@ class DepartmentViewModel : ViewModel() {
     
     fun refreshDepartments() {
         fetchDepartments()
+    }
+
+    var selectedDepartment by mutableStateOf<Department?>(null)
+        private set
+
+    var selectedDate by mutableStateOf<LocalDate?>(null)
+        private set
+
+    fun selectDepartment(department: Department) {
+        selectedDepartment = department
+    }
+
+    fun selectDate(date: LocalDate) {
+        selectedDate = date
     }
 }
