@@ -24,6 +24,7 @@ import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
 import com.example.doctorappoint.ui.account.register.RegisterScreen
 import com.example.doctorappoint.ui.home.MainScreen
 import com.example.doctorappoint.ui.payment.PaymentScreen
+import com.example.doctorappoint.ui.payment.PaymentSuccessScreen
 import com.example.doctorappoint.ui.service.BookingDateScreen
 import com.example.doctorappoint.ui.service.BookingSummaryScreen
 import com.example.doctorappoint.ui.service.BookingTimeScreen
@@ -49,7 +50,8 @@ class MainActivity : ComponentActivity() {
         ZaloPaySDK.init(2553, Environment.SANDBOX)
 
         setContent {
-            MyApp()
+
+          MyApp()
         }
 
     }
@@ -128,7 +130,6 @@ fun MyApp() {
                 }
             }
 
-            // Main app screens (only accessible when logged in)
             composable("main") {
                 MainScreen(
                     navController = navController,
@@ -177,6 +178,16 @@ fun MyApp() {
             }
             composable("payment") {
                 PaymentScreen(navController = navController)
+            }
+
+            composable(
+                "payment_success/{transactionId}"
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getString("transactionId") ?: ""
+                PaymentSuccessScreen(
+                    transactionId = transactionId,
+                    onBackToHome = { navController.popBackStack("main", false) }
+                )
             }
         }
     }

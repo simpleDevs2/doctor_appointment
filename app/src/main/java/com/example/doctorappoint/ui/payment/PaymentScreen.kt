@@ -236,13 +236,19 @@ fun PaymentScreen(
                             "PaymentScreen",
                             "Payment succeeded: transactionId=$transactionId, transToken=$transToken")
                         paymentViewModel.handleEvent(PaymentEvent.ClearSuccess)
-                        AlertDialog.Builder(activity)
-                            .setTitle("Thanh toán thành công")
-                            .setMessage("Mã giao dịch: $transactionId")
-                            .setPositiveButton("OK") { _, _ ->
-                                navController.popBackStack()
-                            }
-                            .show()
+//                        AlertDialog.Builder(activity)
+//                            .setTitle("Thanh toán thành công")
+//                            .setMessage("Mã giao dịch: $transactionId")
+//                            .setPositiveButton("OK") { _, _ ->
+//                                navController.popBackStack()
+//                            }
+//                            .show()
+                        navController.navigate(
+                            "payment_success/${transactionId}"
+                        ) {
+                            popUpTo(navController.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
                     }
 
                     override fun onPaymentCanceled(zpTransToken: String, appTransID: String) {

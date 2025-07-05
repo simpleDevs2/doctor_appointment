@@ -18,7 +18,6 @@ class AccountViewModel : ViewModel(){
 
     fun logout(token: String) {
         viewModelScope.launch {
-
             try {
                 Log.d("LogoutViewModel", "Starting logout process ")
                 _logoutState.value = NetworkResponse.Loading
