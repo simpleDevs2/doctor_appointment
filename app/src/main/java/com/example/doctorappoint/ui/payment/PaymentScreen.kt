@@ -39,6 +39,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
 import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.LoginManager
 import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
@@ -53,6 +54,8 @@ import java.util.Locale
 fun PaymentScreen(
     navController: NavHostController
 ) {
+
+
     val context = LocalContext.current
     val activity  = context as? Activity
     val paymentViewModel : PaymentViewModel = viewModel()
@@ -172,7 +175,6 @@ fun PaymentScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.zalopay),
                         contentDescription = null,
-                        tint = PrimaryColor,
                         modifier = Modifier.size(32.dp)
                     )
                     Spacer(Modifier.width(8.dp))
@@ -202,9 +204,16 @@ fun PaymentScreen(
         }
 
         Spacer(Modifier.weight(1f))
+        val user = LoginManager.getUser(context)
         PrimaryActionButton(
             text = "Thanh toán",
             onClick = {
+                Log.d("PaymentScreen", "Voi ${scheduleDetailId.toString()} va ${selectedTime.toString()}")
+                paymentViewModel.makeAppointment(
+                    userId = user?.id?.toInt() ?: -1,
+                    scheduleDetailId = scheduleDetailId,
+                    appointmentTime = selectedTime
+                )
                 paymentViewModel.handleEvent(PaymentEvent.CreateOrder)
                 Log.d("PaymentScreen", "Thanh toán button clicked, creating order...")
             },

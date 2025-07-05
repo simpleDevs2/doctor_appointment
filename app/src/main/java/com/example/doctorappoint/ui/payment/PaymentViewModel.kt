@@ -4,6 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doctorappoint.data.api.CreateOrder
+import com.example.doctorappoint.data.api.NetworkResponse
+import com.example.doctorappoint.data.api.RetrofitInstance
+import com.example.doctorappoint.model.AppointmentResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -29,6 +32,31 @@ class PaymentViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(PaymentUiState())
     val uiState: StateFlow<PaymentUiState> = _uiState
+
+    private val _appointmentState = MutableStateFlow<NetworkResponse<AppointmentResponse>>(NetworkResponse.Loading)
+    val appointmentState: StateFlow<NetworkResponse<AppointmentResponse>> = _appointmentState
+
+    fun makeAppointment(userId: Int, scheduleDetailId: Int, appointmentTime: String) {
+        viewModelScope.launch {
+            try{
+                Log.d("PaymentViewModel", "Starting make payment process for user: $userId")
+                _appointmentState.value = NetworkResponse.Loading
+                val response = RetrofitInstance.makeAppointment().makeAppointment(userId, scheduleDetailId, appointmentTime)
+                if (response.status){
+                    Log.d("PaymentViewModel", "Payment successful!")
+                    _appointmentState.value = NetworkResponse.Success(response)
+                }else{
+                    _appointmentState.value = NetworkResponse.Error(response.message)
+                    Log.w("PaymentViewModel", "Payment failed: ${response.message}")
+                }
+            }
+            catch (e: Exception){
+                Log.e("PaymentViewModel", "Payment failed with exception", e)
+                Log.e("PaymentViewModel", "Exception message: ${e.message}")
+                _appointmentState.value = NetworkResponse.Error(e.message.toString())
+            }
+        }
+    }
 
     private val orderApi = CreateOrder()
 
