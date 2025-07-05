@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.doctorappoint.ui.account.profile.AccountScreen
+import com.example.doctorappoint.ui.theme.PrimaryColor
 
 @Composable
 fun MainScreen(
@@ -37,7 +38,6 @@ fun MainScreen(
     val bottomBarNavController = rememberNavController()
     val navBackStackEntry by bottomBarNavController.currentBackStackEntryAsState()
     val context = LocalContext.current
-
 
 
     data class BottomNavigationItem(
@@ -105,7 +105,7 @@ fun MainScreen(
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color.White,
                             unselectedIconColor = Color.Gray,
-                            indicatorColor = Color(0xFF2D8C9D)
+                            indicatorColor = PrimaryColor
                         )
                     )
                 }

@@ -102,7 +102,7 @@ fun RegisterScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_background),
+                    painter = painterResource(id = R.drawable.logo),
                     contentDescription = "Heart Hands Icon",
                     modifier = Modifier.size(48.dp)
                 )

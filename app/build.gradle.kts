@@ -51,6 +51,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.firebase.firestore.ktx)
+    implementation(fileTree(mapOf("dir" to "src/main/libs", "include" to listOf("*.aar", "*.jar"))))
+
     //implementation(libs.androidx.navigation.compose.jvmstubs)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -77,7 +79,7 @@ dependencies {
     implementation (libs.gson)
     implementation(libs.androidx.appcompat)
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     implementation(libs.androidx.navigation.compose)
 
@@ -90,7 +92,7 @@ dependencies {
     implementation(libs.firebase.auth)
 
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
-
+    implementation("commons-codec:commons-codec:1.14")
 
 
 

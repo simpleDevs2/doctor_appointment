@@ -41,6 +41,7 @@ import androidx.navigation.NavHostController
 import com.example.doctorappoint.common.BackBtnAndTitle
 import com.example.doctorappoint.common.SpacerHeight
 import java.time.LocalDate
+import java.time.LocalTime.now
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -200,6 +201,7 @@ fun RowScope.DayCell(
     val isPastDate = date.isBefore(today)
     val isToday = date.isEqual(today)
     val isSunday = date.dayOfWeek.value == 7 // Chủ nhật là 7 trong Java Time
+    val isPastTodayAfter4PM = isToday && now().hour >= 16
 
     val cellColor = when {
         isSelected -> Color(0xFF26C6DA)
@@ -223,7 +225,7 @@ fun RowScope.DayCell(
             .clip(RoundedCornerShape(8.dp))
             .background(cellColor)
             .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-            .clickable(enabled = !isPastDate && !isSunday) { onDateSelected(date) }, // Không cho chọn chủ nhật
+            .clickable(enabled = !isPastDate && !isSunday && !isPastTodayAfter4PM) { onDateSelected(date) }, // Không cho chọn chủ nhật
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

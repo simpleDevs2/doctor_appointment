@@ -1,6 +1,7 @@
 package com.example.doctorappoint.common
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -156,5 +157,43 @@ fun PrimaryActionButton(
         enabled = enabled
     ) {
         Text(text = text, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.W500)
+    }
+}
+
+/**
+ * Chuyển đổi định dạng ngày từ yyyy-MM-dd thành dd/MM/yyyy
+ * @param dateString Ngày theo định dạng yyyy-MM-dd
+ * @return Ngày theo định dạng dd/MM/yyyy hoặc chuỗi gốc nếu có lỗi
+ */
+fun formatDateForAPI(dateString: String?): String {
+    return if (dateString.isNullOrBlank()) {
+        ""
+    } else {
+        try {
+            val inputDate = java.time.LocalDate.parse(dateString)
+            inputDate.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+        } catch (e: Exception) {
+            Log.e("DateUtils", "Error formatting date: ${e.message}")
+            dateString // Fallback to original format if parsing fails
+        }
+    }
+}
+
+/**
+ * Chuyển đổi định dạng ngày từ dd/MM/yyyy thành yyyy-MM-dd
+ * @param dateString Ngày theo định dạng dd/MM/yyyy
+ * @return Ngày theo định dạng yyyy-MM-dd hoặc chuỗi gốc nếu có lỗi
+ */
+fun formatDateFromAPI(dateString: String?): String {
+    return if (dateString.isNullOrBlank()) {
+        ""
+    } else {
+        try {
+            val inputDate = java.time.LocalDate.parse(dateString, java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            inputDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        } catch (e: Exception) {
+            Log.e("DateUtils", "Error formatting date: ${e.message}")
+            dateString // Fallback to original format if parsing fails
+        }
     }
 }

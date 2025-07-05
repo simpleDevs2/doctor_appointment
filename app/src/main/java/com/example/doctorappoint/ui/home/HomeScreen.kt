@@ -50,7 +50,6 @@ import com.example.doctorappoint.model.User
 import com.example.doctorappoint.model.bannerList
 import com.example.doctorappoint.model.newsList
 import com.example.doctorappoint.ui.theme.PrimaryColor
-import com.example.doctorappoint.ui.theme.SecondaryColor
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalTime
 import network.chaintech.kmp_date_time_picker.utils.now
@@ -114,7 +113,7 @@ fun TopBar(modifier: Modifier = Modifier, user: User?){
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
-                painter = painterResource(id = R.drawable.doctor),
+                painter = painterResource(id = R.drawable.avar),
                 contentDescription = "Profile Picture",
                 modifier = Modifier
                     .size(60.dp)
@@ -217,7 +216,7 @@ fun ServicesGrid(modifier: Modifier = Modifier,navController: NavHostController)
                 modifier = Modifier.weight(1f),
                 iconResId = R.drawable.doctor,
                 onclick = {
-                    navController.navigate("doctorList")
+                   // navController.navigate("doctorList")
                 }
             )
         }
@@ -231,7 +230,7 @@ fun ServicesGrid(modifier: Modifier = Modifier,navController: NavHostController)
             ServiceItem(
                 text = "Khám ngoài giờ",
                 modifier = Modifier.weight(1f),
-                iconResId = R.drawable.stethoscope,
+                iconResId = R.drawable.calendar,
                 onclick = {
 
                 }
@@ -239,7 +238,7 @@ fun ServicesGrid(modifier: Modifier = Modifier,navController: NavHostController)
             ServiceItem(
                 text = "Đặt lịch uống thuốc",
                 modifier = Modifier.weight(1f),
-                iconResId = R.drawable.stethoscope,
+                iconResId = R.drawable.pills,
                 onclick = {
 
                 }
@@ -261,7 +260,7 @@ fun ServiceItem(
             .height(80.dp)
             .clickable { onclick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F6F6)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -273,7 +272,7 @@ fun ServiceItem(
             Icon(
                 painter = painterResource(id = iconResId),
                 contentDescription = null,
-                tint = SecondaryColor,
+                tint = PrimaryColor,
                 modifier = Modifier.size(32.dp)
             )
             SpacerWidth(12.dp)

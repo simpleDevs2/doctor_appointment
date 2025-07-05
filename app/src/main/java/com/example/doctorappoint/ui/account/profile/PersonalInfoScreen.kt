@@ -115,7 +115,6 @@ fun PersonalInfoScreen(
                 LoginManager.saveLoginData(context, state.data.data, state.data.data.api_token)
                 userState.value = state.data.data
                 Toast.makeText(context, "Cập nhật thành công!", Toast.LENGTH_SHORT).show()
-
                 onProfileUpdated()
             }
             is NetworkResponse.Error -> {

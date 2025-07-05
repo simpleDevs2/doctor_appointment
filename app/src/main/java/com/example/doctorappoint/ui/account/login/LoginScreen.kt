@@ -131,7 +131,7 @@ fun LoginScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_background), // Thay thế bằng icon của bạn
+                        painter = painterResource(id = R.drawable.logo), // Thay thế bằng icon của bạn
                         contentDescription = "Heart Hands Icon",
                         modifier = Modifier.size(48.dp)
                     )

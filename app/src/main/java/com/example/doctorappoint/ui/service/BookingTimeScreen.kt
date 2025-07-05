@@ -1,5 +1,6 @@
 package com.example.doctorappoint.ui.service
 
+import ScheduleResponse
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,16 +14,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.Roofing
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,47 +37,55 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.common.formatDateForAPI
+import com.example.doctorappoint.data.api.NetworkResponse
 
 @Composable
 fun BookingTimeScreen(
     navController: NavHostController,
-    selectedDate: String,
+    departmentId: Int,
+    date: String,
     modifier: Modifier = Modifier
 ) {
-    // Dữ liệu ảo
-    val doctors = listOf(
+    val bookingViewModel: BookingViewModel = viewModel()
+    val doctorScheduleState by bookingViewModel.doctorSchedule.collectAsState()
+
+    LaunchedEffect(departmentId, date) {
+        bookingViewModel.getDoctorSchedule(departmentId, date)
+    }
+
+    val schedules = when (doctorScheduleState) {
+        is NetworkResponse.Success -> (doctorScheduleState as NetworkResponse.Success<List<ScheduleResponse>>).data
+        else -> emptyList()
+    }
+    val isLoading = doctorScheduleState is NetworkResponse.Loading
+
+    val doctors = schedules.map { schedule ->
         DoctorTimeInfo(
-            name = "BSCKII. Huỳnh Quốc Bảo",
-            room = "Phòng 66 - Lầu 1 Khu B - Buổi sáng",
-            dates = listOf("04/07/2025", "11/07/2025", "18/07/2025", "25/07/2025", "01/08/2025"),
-            selectedDate = "04/07/2025",
-            session = "Buổi sáng (Thứ 6)",
-            sessionColor = Color(0xFF4CAF50),
-            timeSlots = listOf(
-                TimeSlot("06:30 - 07:30", false),
-                TimeSlot("07:30 - 08:30", true),
-                TimeSlot("08:30 - 09:30", true),
-                TimeSlot("09:30 - 10:30", true),
-                TimeSlot("10:30 - 11:30", false)
-            )
-        ),
-        DoctorTimeInfo(
-            name = "ThS BS. Nguyễn Ngọc Thôi",
-            room = "Phòng 66 - Lầu 1 Khu B - Buổi chiều",
-            dates = listOf("04/07/2025", "11/07/2025", "18/07/2025", "25/07/2025", "01/08/2025"),
-            selectedDate = "04/07/2025",
-            session = "Buổi chiều (Thứ 6)",
-            sessionColor = Color(0xFFFF9800),
-            timeSlots = listOf(
-                TimeSlot("13:30 - 14:30", true),
-                TimeSlot("14:30 - 15:30", true),
-                TimeSlot("15:30 - 16:00", true)
-            )
+            scheduleDetailId = schedule.doctors.firstOrNull()?.schedule_detail_id ?: 0,
+            doctorId = schedule.doctors.firstOrNull()?.id?: 0,
+            name = schedule.doctors.firstOrNull()?.name ?: "Bác sĩ",
+            room = schedule.room.name,
+            dates = listOf(formatDateForAPI(schedule.working_date)),
+            selectedDate = formatDateForAPI(schedule.working_date),
+            session = schedule.shift,
+            sessionColor = when (schedule.shift.lowercase()) {
+                "sáng", "morning" -> Color(0xFF7BC1B7)
+                "chiều", "afternoon" -> Color(0xFF0B8FAC)
+                else -> Color(0xFF1976D2)
+            },
+            timeSlots = parseTimeSlots(schedule.time)
         )
-    )
+    }
+
+    // state để lưu duy nhất 1 lựa chọn
+    var selectedDoctor by remember { mutableStateOf<String?>(null) }
+    var selectedSlot by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = modifier
@@ -82,29 +93,84 @@ fun BookingTimeScreen(
             .background(Color.White)
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-       BackBtnAndTitle(
-          title =  "Chọn giờ khám",
-           onBackClick = {
-               navController.popBackStack()
-           }
-       )
-        Spacer(modifier = Modifier.height(8.dp))
-        doctors.forEach { doctor ->
-            DoctorTimeCard(doctor)
-            Spacer(modifier = Modifier.height(16.dp))
+        BackBtnAndTitle(
+            title = "Chọn giờ khám",
+            onBackClick = { navController.popBackStack() }
+        )
+        SpacerHeight(12.dp)
+
+        when {
+            isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            doctors.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Không có lịch bác sĩ cho ngày này",
+                        fontSize = 16.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            else -> {
+                doctors.forEach { doctor ->
+                    DoctorTimeCard(
+                        doctor = doctor,
+                        selectedDoctor = selectedDoctor,
+                        selectedSlot = selectedSlot,
+                        onSlotSelected = { doctorName, slotTime ->
+                            selectedDoctor = doctorName
+                            selectedSlot = slotTime
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("schedule_detail_id", doctor.scheduleDetailId)
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("selected_time", slotTime)
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("selected_doctor", doctorName)
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("room",doctor.room )
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.set("doctor_id",doctor.doctorId )
+
+                            navController.popBackStack()
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
         }
     }
 }
 
 @Composable
-fun DoctorTimeCard(doctor: DoctorTimeInfo) {
-    var selectedDate by remember { mutableStateOf(doctor.selectedDate) }
-    var selectedSlot by remember { mutableStateOf("") }
-
+fun DoctorTimeCard(
+    doctor: DoctorTimeInfo,
+    selectedDoctor: String?,
+    selectedSlot: String?,
+    onSlotSelected: (String, String) -> Unit
+) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -121,91 +187,37 @@ fun DoctorTimeCard(doctor: DoctorTimeInfo) {
                 SpacerWidth(8.dp)
                 Text(
                     text = doctor.name,
-                    fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = Color(0xFF1976D2),
-                    modifier = Modifier.padding(start = 4.dp)
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1976D2)
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            SpacerHeight(4.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Roofing,
                     contentDescription = null,
-                    tint = Color(0xFF1976D2),
+                    tint = Color(0xFF757575),
                     modifier = Modifier.size(20.dp)
                 )
                 SpacerWidth(8.dp)
                 Text(
                     text = doctor.room,
                     fontSize = 15.sp,
-                    color = Color(0xFF757575),
-                    modifier = Modifier.padding(start = 4.dp)
+                    color = Color(0xFF757575)
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            // Dãy ngày
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                doctor.dates.forEach { date ->
-                    val isSelected = date == selectedDate
-                    Box(
-                        modifier = Modifier
-                            .width(64.dp)
-                            .height(72.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) Color(0xFFE3F0FF) else Color.White)
-                            .border(
-                                width = 2.dp,
-                                color = if (isSelected) Color(0xFF1976D2) else Color(0xFFE0E0E0),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .clickable { selectedDate = date },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = date.substring(0, 5),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = if (isSelected) Color(0xFF1976D2) else Color.Black
-                            )
-                            Text(
-                                text = date.substring(6),
-                                fontSize = 13.sp,
-                                color = if (isSelected) Color(0xFF1976D2) else Color.Black
-                            )
-                        }
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.align(Alignment.TopEnd).size(16.dp)
-                                    .border(1.dp, Color.White, RoundedCornerShape(42)).padding(2.dp)
-                                    .background( Color(0xFF1976D2) )
-                            )
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            // Thông tin ca
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(start = 4.dp)
-            ) {
+            SpacerHeight(8.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "$selectedDate - ${doctor.session}",
+                    text = "${doctor.selectedDate} - ${doctor.session}",
                     fontSize = 15.sp,
-                    color = doctor.sessionColor,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = doctor.sessionColor
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            // Các khung giờ
+            SpacerHeight(8.dp)
+
             val slots = doctor.timeSlots
             val rows = slots.chunked(2)
             rows.forEach { rowSlots ->
@@ -216,7 +228,7 @@ fun DoctorTimeCard(doctor: DoctorTimeInfo) {
                         .padding(vertical = 4.dp)
                 ) {
                     rowSlots.forEach { slot ->
-                        val isSelected = selectedSlot == slot.time && slot.enabled
+                        val isSelected = (selectedDoctor == doctor.name && selectedSlot == slot.time && slot.enabled)
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -238,7 +250,9 @@ fun DoctorTimeCard(doctor: DoctorTimeInfo) {
                                     },
                                     shape = RoundedCornerShape(8.dp)
                                 )
-                                .clickable(enabled = slot.enabled) { selectedSlot = slot.time },
+                                .clickable(enabled = slot.enabled) {
+                                    onSlotSelected(doctor.name, slot.time)
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -248,12 +262,11 @@ fun DoctorTimeCard(doctor: DoctorTimeInfo) {
                                     isSelected -> Color.White
                                     else -> Color(0xFF1976D2)
                                 },
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 15.sp
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
-                    // Nếu hàng này chỉ có 1 slot, thêm Spacer để căn trái
                     if (rowSlots.size == 1) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
@@ -263,7 +276,22 @@ fun DoctorTimeCard(doctor: DoctorTimeInfo) {
     }
 }
 
+
+fun parseTimeSlots(timeRange: String): List<TimeSlot> {
+    val parts = timeRange.split("-")
+    if (parts.size != 2) return emptyList()
+    val start = parts[0].substringBefore(":").toIntOrNull() ?: return emptyList()
+    val end = parts[1].substringBefore(":").toIntOrNull() ?: return emptyList()
+    return (start until end).map { hour ->
+        val from = "%02d:00".format(hour)
+        val to = "%02d:00".format(hour + 1)
+        TimeSlot("$from - $to", true)
+    }
+}
+
 data class DoctorTimeInfo(
+   val scheduleDetailId :Int,
+   val doctorId :Int,
     val name: String,
     val room: String,
     val dates: List<String>,
@@ -276,4 +304,4 @@ data class DoctorTimeInfo(
 data class TimeSlot(
     val time: String,
     val enabled: Boolean
-) 
+)

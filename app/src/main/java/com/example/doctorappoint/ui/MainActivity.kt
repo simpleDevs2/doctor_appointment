@@ -1,8 +1,10 @@
 package com.example.doctorappoint.ui
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.StrictMode
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,18 +18,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.doctorappoint.common.LoginManager
+import com.example.doctorappoint.data.Constant.AppInfo
 import com.example.doctorappoint.navigation.WelcomeScreen
 import com.example.doctorappoint.ui.account.login.LoginScreen
 import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
 import com.example.doctorappoint.ui.account.register.RegisterScreen
 import com.example.doctorappoint.ui.home.MainScreen
+import com.example.doctorappoint.ui.payment.PaymentScreen
 import com.example.doctorappoint.ui.service.BookingDateScreen
+import com.example.doctorappoint.ui.service.BookingSummaryScreen
 import com.example.doctorappoint.ui.service.BookingTimeScreen
 import com.example.doctorappoint.ui.theme.DoctorAppointTheme
 import com.example.doctorappoint.ui.theme.service.BookingScreen
-import com.example.doctorappoint.ui.theme.service.DoctorListScreen
 import com.example.doctorappoint.ui.theme.service.SelectDepartmentScreen
 import com.example.doctorappoint.ui.theme.user.OtpVerificationScreen
+import vn.zalopay.sdk.Environment
+import vn.zalopay.sdk.ZaloPaySDK
 
 class MainActivity : ComponentActivity() {
     @SuppressLint("ViewModelConstructorInComposable")
@@ -35,9 +41,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val policy = StrictMode.ThreadPolicy.Builder()
+            .permitAll()
+            .build()
+        StrictMode.setThreadPolicy(policy)
+
+        ZaloPaySDK.init(AppInfo.APP_ID, Environment.SANDBOX)
+
         setContent {
             MyApp()
         }
+
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        ZaloPaySDK.getInstance().onResult(intent)
     }
 
 
@@ -133,28 +153,35 @@ fun MyApp() {
             composable("selectDepartment") {
                 SelectDepartmentScreen(navController = navController)
             }
-            composable("booking/{departmentId}"){ backStackEntry ->
+            composable("booking/{departmentId}/{price}"){ backStackEntry ->
                 val departmentId = backStackEntry.arguments?.getString("departmentId")?.toIntOrNull()?:-1
+                val price = backStackEntry.arguments?.getString("price")?.toDoubleOrNull()?: 0.0
                 BookingScreen(
                     navController = navController,
-                    departmentId = departmentId
+                    departmentId = departmentId,
+                    price = price
                 )
             }
             composable("booking_date"){
                 BookingDateScreen(navController = navController)
             }
-            composable(
-                "booking_time_screen/{selectedDate}"
-            ) { backStackEntry ->
-                val selectedDate = backStackEntry.arguments?.getString("selectedDate") ?: ""
-                BookingTimeScreen(navController, selectedDate = selectedDate)
+            composable("booking_time_screen/{departmentId}/{date}") { backStackEntry ->
+                val departmentId = backStackEntry.arguments?.getString("departmentId")?.toIntOrNull() ?: -1
+                val date = backStackEntry.arguments?.getString("date") ?: ""
+                BookingTimeScreen(navController = navController, departmentId = departmentId, date = date)
             }
 
-            composable("doctorList") {
-                DoctorListScreen(navController = navController)
+            composable("Booking_summary") {
+                BookingSummaryScreen(
+                    navController = navController,
+                )
+            }
+            composable("payment") {
+                PaymentScreen(navController = navController)
             }
         }
     }
+
 }
 
 

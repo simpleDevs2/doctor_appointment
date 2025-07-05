@@ -1,6 +1,7 @@
 package com.example.doctorappoint.data.api
 
 import com.example.doctorappoint.data.services.DepartmentApi
+import com.example.doctorappoint.data.services.DoctorSchedule
 import com.example.doctorappoint.data.services.UserApi
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -18,7 +19,11 @@ object RetrofitInstance {
     
     private val userApi: UserApi = retrofit.create(UserApi::class.java)
     private val departmentApi: DepartmentApi = retrofit.create(DepartmentApi::class.java)
+    private val doctorSchedule: DoctorSchedule = retrofit.create(DoctorSchedule::class.java)
     
     fun getUserApi(): UserApi = userApi
     fun getDepartmentList(): DepartmentApi = departmentApi
+    fun getDoctorSchedule(): DoctorSchedule = doctorSchedule
+
+
 }

@@ -54,7 +54,7 @@ import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.ui.theme.PrimaryColor
-import com.example.doctorappoint.ui.theme.SecondaryColor
+import com.example.doctorappoint.ui.theme.PrimaryColorLight
 
 @Composable
 fun AccountScreen(
@@ -90,7 +90,7 @@ fun AccountScreen(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.White, shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = 16.dp)
+        //    .padding(horizontal = 16.dp)
     ) {
         TopSection(user)
         SpacerHeight(16.dp)
@@ -126,7 +126,7 @@ fun AccountScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?",
+                            text = "Bạn có chắc muốn đăng xuất khỏi tài khoản?",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Black
                         )
@@ -140,10 +140,10 @@ fun AccountScreen(
                                 showLogoutDialog = false
                             },
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                containerColor = SecondaryColor
+                                containerColor = Color.White
                             )
                         ) {
-                            Text("Hủy", color = Color.White)
+                            Text("Hủy", color = Color.Gray)
                         }
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
@@ -153,7 +153,7 @@ fun AccountScreen(
                                 if (!token.isNullOrEmpty()) {
                                     logoutViewModel.logout(token)
                                 }
-                              //  LoginManager.logout(context)
+                              // LoginManager.logout(context)
 
                             },
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -174,14 +174,20 @@ fun TopSection(user: com.example.doctorappoint.model.User?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFE0F7FA))
+            .clip(
+                RoundedCornerShape(
+                    bottomStart = 24.dp,
+                    bottomEnd = 24.dp
+                )
+            )
+            .background(PrimaryColorLight)
             .padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
 
         Image(
-            painter = painterResource(id = R.drawable.banner), // Replace with your actual logo resource
+            painter = painterResource(id = R.drawable.logo),
             contentDescription = "UMC CARE Logo",
             modifier = Modifier
                 .size(80.dp)
@@ -204,14 +210,8 @@ fun TopSection(user: com.example.doctorappoint.model.User?) {
             fontWeight = FontWeight.Bold,
             color = Color.Black
         )
-        SpacerHeight(4.dp)
-        // Phone Number
-        Text(
-            text = user?.phone ?: "Phone",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Normal,
-            color = Color.Gray
-        )
+
+
     }
 }
 
