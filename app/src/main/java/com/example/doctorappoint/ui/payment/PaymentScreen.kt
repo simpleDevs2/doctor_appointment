@@ -1,6 +1,7 @@
 package com.example.doctorappoint.ui.payment
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,6 +44,7 @@ import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import vn.zalopay.sdk.ZaloPaySDK
+import vn.zalopay.sdk.listeners.PayOrderListener
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -215,7 +217,7 @@ fun PaymentScreen(
                 activity,
                 uiState.zpTransToken,
                 "demozpdk://app",
-                object : vn.zalopay.sdk.listeners.PayOrderListener {
+                object : PayOrderListener {
                     override fun onPaymentSucceeded(
                         transactionId: String,
                         transToken: String,
@@ -225,7 +227,7 @@ fun PaymentScreen(
                             "PaymentScreen",
                             "Payment succeeded: transactionId=$transactionId, transToken=$transToken")
                         paymentViewModel.handleEvent(PaymentEvent.ClearSuccess)
-                        androidx.appcompat.app.AlertDialog.Builder(activity)
+                        AlertDialog.Builder(activity)
                             .setTitle("Thanh toán thành công")
                             .setMessage("Mã giao dịch: $transactionId")
                             .setPositiveButton("OK") { _, _ ->
@@ -240,7 +242,7 @@ fun PaymentScreen(
                             "PaymentScreen",
                             "Payment canceled: zpTransToken=$zpTransToken"
                         )
-                        androidx.appcompat.app.AlertDialog.Builder(activity)
+                        AlertDialog.Builder(activity)
                             .setTitle("Đã hủy")
                             .setMessage("Giao dịch đã bị hủy.")
                             .setPositiveButton("OK", null)
@@ -253,7 +255,7 @@ fun PaymentScreen(
                         appTransID: String
                     ) {
                         paymentViewModel.clearToken()
-                        androidx.appcompat.app.AlertDialog.Builder(activity)
+                        AlertDialog.Builder(activity)
                             .setTitle("Lỗi thanh toán")
                             .setMessage("Mã lỗi: ")
                             .setPositiveButton("OK", null)
@@ -262,5 +264,6 @@ fun PaymentScreen(
                 }
             )
         }
-        }
+    }
+
 }

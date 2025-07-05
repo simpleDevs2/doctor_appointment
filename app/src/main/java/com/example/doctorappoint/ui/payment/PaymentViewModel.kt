@@ -66,10 +66,11 @@ class PaymentViewModel : ViewModel() {
             try {
                 val data = orderApi.createOrder(_uiState.value.amount)
                 Log.d("PaymentViewModel", "Amount: ${_uiState.value.amount}")
+                Log.d("PaymentViewModel", "Amount: ${data.toString()}")
                 val code = data.getString("return_code")
-
                 if (code == "1") {
                     val zpTransToken = data.getString("zp_trans_token")
+                    Log.d("PaymentViewModel", "Order creation : ${zpTransToken.toString()}")
                     _uiState.value = _uiState.value.copy(
                         zpTransToken = zpTransToken,
                         showToken = true,
@@ -77,6 +78,7 @@ class PaymentViewModel : ViewModel() {
                         successMessage = "Tạo đơn hàng thành công"
                     )
                 } else {
+                    Log.d("PaymentViewModel", "Order creation failed: ${data.toString()}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = "Tạo đơn hàng thất bại: $code"

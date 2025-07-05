@@ -8,7 +8,7 @@ import java.util.Date
 
 class CreateOrder {
     private inner class CreateOrderData(amount: String) {
-        val AppId: String
+        val Appid: String
         val AppUser: String
         val AppTime: String
         val Amount: String
@@ -21,7 +21,7 @@ class CreateOrder {
 
         init {
             val appTime = Date().time
-            AppId = AppInfo.APP_ID.toString()
+            Appid = AppInfo.APP_ID.toString()
             AppUser = "Doctor_Appointment"
             AppTime = appTime.toString()
             Amount = amount
@@ -31,7 +31,7 @@ class CreateOrder {
             BankCode = "zalopayapp"
             Description = "Thanh toán hóa đơn đặt lịch khám bệnh ${Helpers.getAppTransId()}"
 
-            val inputHMac = "$AppId|$AppTransId|$AppUser|$Amount|$AppTime|$EmbedData|$Items"
+            val inputHMac = "$Appid|$AppTransId|$AppUser|$Amount|$AppTime|$EmbedData|$Items"
             Mac = Helpers.getMac(AppInfo.MAC_KEY, inputHMac)
         }
     }
@@ -41,7 +41,7 @@ class CreateOrder {
         val input = CreateOrderData(amount)
 
         val formBody = FormBody.Builder()
-            .add("app_id", input.AppId)
+            .add("app_id", input.Appid)
             .add("app_user", input.AppUser)
             .add("app_time", input.AppTime)
             .add("amount", input.Amount)

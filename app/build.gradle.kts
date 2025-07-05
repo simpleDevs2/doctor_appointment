@@ -92,6 +92,7 @@ dependencies {
     implementation(libs.firebase.auth)
 
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
+
     implementation("commons-codec:commons-codec:1.14")
 
 

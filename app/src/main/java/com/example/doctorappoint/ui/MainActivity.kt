@@ -18,7 +18,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.doctorappoint.common.LoginManager
-import com.example.doctorappoint.data.Constant.AppInfo
 import com.example.doctorappoint.navigation.WelcomeScreen
 import com.example.doctorappoint.ui.account.login.LoginScreen
 import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
@@ -47,7 +46,7 @@ class MainActivity : ComponentActivity() {
             .build()
         StrictMode.setThreadPolicy(policy)
 
-        ZaloPaySDK.init(AppInfo.APP_ID, Environment.SANDBOX)
+        ZaloPaySDK.init(2553, Environment.SANDBOX)
 
         setContent {
             MyApp()
