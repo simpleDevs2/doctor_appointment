@@ -5,7 +5,7 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface Appointment{
-    @POST("/bookinglist")
+    @POST("/booking")
     suspend fun makeAppointment(
         @Query("user_id") userId: Int,
         @Query("schedule_detail_id") scheduleDetailId: Int,

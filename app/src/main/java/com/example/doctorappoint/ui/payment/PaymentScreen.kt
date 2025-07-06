@@ -2,6 +2,7 @@ package com.example.doctorappoint.ui.payment
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
@@ -43,7 +45,10 @@ import com.example.doctorappoint.common.LoginManager
 import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.ui.theme.PrimaryColor
+import com.google.gson.Gson
+import kotlinx.coroutines.launch
 import vn.zalopay.sdk.ZaloPaySDK
 import vn.zalopay.sdk.listeners.PayOrderListener
 import java.text.NumberFormat
@@ -60,6 +65,7 @@ fun PaymentScreen(
     val activity  = context as? Activity
     val paymentViewModel : PaymentViewModel = viewModel()
     val uiState by paymentViewModel.uiState.collectAsState()
+    val paymentState by paymentViewModel.appointmentState.collectAsState()
 
     val previousEntry = navController.previousBackStackEntry
     val appointment = previousEntry
@@ -74,6 +80,8 @@ fun PaymentScreen(
         .getCurrencyInstance(Locale("vi", "VN"))
         .format(price)
         .replace("VND", "₫")
+
+
 
     Column(
         modifier = Modifier
@@ -205,21 +213,41 @@ fun PaymentScreen(
 
         Spacer(Modifier.weight(1f))
         val user = LoginManager.getUser(context)
+        val timeToSend = selectedTime
+            .split("-")
+            .firstOrNull()
+            ?.trim() ?: ""
         PrimaryActionButton(
             text = "Thanh toán",
             onClick = {
                 Log.d("PaymentScreen", "Voi ${scheduleDetailId.toString()} va ${selectedTime.toString()}")
-                paymentViewModel.makeAppointment(
-                    userId = user?.id?.toInt() ?: -1,
-                    scheduleDetailId = scheduleDetailId,
-                    appointmentTime = selectedTime
-                )
-                paymentViewModel.handleEvent(PaymentEvent.CreateOrder)
+                Log.d("PaymentScreen", "Time ${timeToSend.toString()}")
+                paymentViewModel.viewModelScope.launch {
+                    val success = paymentViewModel.makeAppointment(
+                        userId = user?.id?.toInt() ?: -1,
+                        scheduleDetailId = scheduleDetailId,
+                        appointmentTime = timeToSend
+                    )
+                    if (success) {
+                        paymentViewModel.handleEvent(PaymentEvent.AmountChanged(price.toInt().toString()))
+                        paymentViewModel.handleEvent(PaymentEvent.CreateOrder)
+                        Log.d("PaymentScreen", "Appointment ok, creating order...")
+                    } else {
+                        Log.d("PaymentScreen", "Appointment failed, do not continue payment")
+                        AlertDialog.Builder(activity)
+                            .setTitle("Đặt lịch thất bại")
+                            .setMessage("Không thể đặt lịch khám, vui lòng thử lại sau.")
+                            .setPositiveButton("OK", null)
+                            .show()
+                    }
+                }
+
                 Log.d("PaymentScreen", "Thanh toán button clicked, creating order...")
             },
         )
 
     }
+
     if (uiState.showToken && activity != null) {
         LaunchedEffect(uiState.zpTransToken) {
             ZaloPaySDK.getInstance().payOrder(
@@ -243,12 +271,43 @@ fun PaymentScreen(
 //                                navController.popBackStack()
 //                            }
 //                            .show()
-                        navController.navigate(
-                            "payment_success/${transactionId}"
-                        ) {
-                            popUpTo(navController.graph.startDestinationId)
-                            launchSingleTop = true
+                        when (val currentState = paymentState) {
+                            is NetworkResponse.Success -> {
+                                val bookingData = currentState.data.data
+                                Log.d("PaymentScreen", "Data response $bookingData")
+
+                                val bookingMap = mapOf(
+                                    "booking_id" to bookingData.booking_id,
+                                    "appointment_date" to bookingData.appointment_date,
+                                    "appointment_time" to bookingData.appointment_time,
+                                    "doctor_name" to bookingData.doctor_name,
+                                    "room_name" to bookingData.room_name,
+                                    "shift" to bookingData.shift,
+                                    "schedule_id" to bookingData.schedule_id,
+                                    "doctor_id" to bookingData.doctor_id,
+                                    "room_id" to bookingData.room_id,
+                                    "schedule_detail_id" to bookingData.schedule_detail_id,
+                                    "working_date" to bookingData.working_date
+                                )
+
+                                val bookingJson = Gson().toJson(bookingMap)
+
+                                navController.navigate(
+                                    "payment_success/${transactionId}?bookingData=${
+                                        Uri.encode(
+                                            bookingJson
+                                        )
+                                    }"
+                                ) {
+                                    popUpTo(navController.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            }
+
+                            is NetworkResponse.Error -> TODO()
+                            NetworkResponse.Loading -> TODO()
                         }
+
                     }
 
                     override fun onPaymentCanceled(zpTransToken: String, appTransID: String) {

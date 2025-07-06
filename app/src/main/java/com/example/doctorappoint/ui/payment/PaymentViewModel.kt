@@ -36,27 +36,27 @@ class PaymentViewModel : ViewModel() {
     private val _appointmentState = MutableStateFlow<NetworkResponse<AppointmentResponse>>(NetworkResponse.Loading)
     val appointmentState: StateFlow<NetworkResponse<AppointmentResponse>> = _appointmentState
 
-    fun makeAppointment(userId: Int, scheduleDetailId: Int, appointmentTime: String) {
-        viewModelScope.launch {
-            try{
-                Log.d("PaymentViewModel", "Starting make payment process for user: $userId")
-                _appointmentState.value = NetworkResponse.Loading
-                val response = RetrofitInstance.makeAppointment().makeAppointment(userId, scheduleDetailId, appointmentTime)
-                if (response.status){
-                    Log.d("PaymentViewModel", "Payment successful!")
-                    _appointmentState.value = NetworkResponse.Success(response)
-                }else{
-                    _appointmentState.value = NetworkResponse.Error(response.message)
-                    Log.w("PaymentViewModel", "Payment failed: ${response.message}")
-                }
+    suspend fun makeAppointment(userId: Int, scheduleDetailId: Int, appointmentTime: String): Boolean {
+        return try {
+            Log.d("PaymentViewModel", "Starting make payment process for user: $userId")
+            _appointmentState.value = NetworkResponse.Loading
+            val response = RetrofitInstance.makeAppointment().makeAppointment(userId, scheduleDetailId, appointmentTime)
+            if (response.status) {
+                _appointmentState.value = NetworkResponse.Success(response)
+                Log.d("PaymentViewModel", "Appointment success: ${response}")
+                true
+            } else {
+                _appointmentState.value = NetworkResponse.Error(response.message)
+                Log.w("PaymentViewModel", "Appointment failed: ${response.message}")
+                false
             }
-            catch (e: Exception){
-                Log.e("PaymentViewModel", "Payment failed with exception", e)
-                Log.e("PaymentViewModel", "Exception message: ${e.message}")
-                _appointmentState.value = NetworkResponse.Error(e.message.toString())
-            }
+        } catch (e: Exception) {
+            Log.e("PaymentViewModel", "Appointment failed with exception", e)
+            _appointmentState.value = NetworkResponse.Error(e.message.toString())
+            false
         }
     }
+
 
 
     private val orderApi = CreateOrder()

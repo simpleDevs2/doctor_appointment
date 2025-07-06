@@ -14,9 +14,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.doctorappoint.common.LoginManager
 import com.example.doctorappoint.navigation.WelcomeScreen
 import com.example.doctorappoint.ui.account.login.LoginScreen
@@ -181,12 +183,24 @@ fun MyApp() {
             }
 
             composable(
-                "payment_success/{transactionId}"
+                route = "payment_success/{transactionId}?bookingData={bookingData}",
+                arguments = listOf(
+                    navArgument("transactionId") { type = NavType.StringType },
+                    navArgument("bookingData") { type = NavType.StringType; nullable = true }
+                )
             ) { backStackEntry ->
                 val transactionId = backStackEntry.arguments?.getString("transactionId") ?: ""
+                val bookingDataJson = backStackEntry.arguments?.getString("bookingData")
+
                 PaymentSuccessScreen(
+                    navController = navController,
                     transactionId = transactionId,
-                    onBackToHome = { navController.popBackStack("main", false) }
+                    bookingDataJson = bookingDataJson,
+                    onBackToHome = {
+                        navController.navigate("home") {
+                            popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        }
+                    }
                 )
             }
         }

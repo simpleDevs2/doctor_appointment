@@ -25,22 +25,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
 import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.common.formatDateForAPI
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.model.AppointmentResponse
+import com.example.doctorappoint.model.BookingData
 import com.example.doctorappoint.ui.service.InfoRow
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import com.example.doctorappoint.ui.theme.SecondaryColor
+import com.google.gson.Gson
 
 @Composable
 fun PaymentSuccessScreen(
+    navController: NavHostController,
     transactionId: String,
+    bookingDataJson: String?,
     onBackToHome: () -> Unit
 ) {
-    val paymentViewModel: PaymentViewModel = viewModel()
-    val paymentState by paymentViewModel.appointmentState.collectAsState()
+
+    val bookingData = bookingDataJson?.let {
+        Gson().fromJson(it, Map::class.java) as Map<*, *>
+    }
+
+
 
     Column(
         modifier = Modifier
@@ -84,10 +94,7 @@ fun PaymentSuccessScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        val bookingData = when (paymentState) {
-            is NetworkResponse.Success -> (paymentState as NetworkResponse.Success<AppointmentResponse>).data.data
-            else -> null
-        }
+
 
         Card(
             shape = RoundedCornerShape(12.dp),
@@ -95,13 +102,17 @@ fun PaymentSuccessScreen(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
+
             Column(modifier = Modifier.padding(16.dp)) {
-                InfoRow("Mã đặt lịch", bookingData?.schedule_id.toString())
-                InfoRow("Bác sĩ", bookingData?.doctor_name.toString())
-                InfoRow("Ngày khám", bookingData?.appointment_date.toString())
-                InfoRow("Giờ khám", bookingData?.appointment_time.toString())
-                InfoRow("Phòng khám", bookingData?.room_name.toString())
-                InfoRow("Ca khám", bookingData?.shift.toString())
+                bookingData?.let{data ->
+                    InfoRow("Mã đặt lịch", data["schedule_id"].toString())
+                    InfoRow("Bác sĩ", data["doctor_name"].toString())
+                    InfoRow("Ngày khám", formatDateForAPI( data["appointment_date"].toString()))
+                    InfoRow("Giờ khám", data["appointment_time"].toString())
+                    InfoRow("Phòng khám", data["room_name"].toString())
+                    InfoRow("Ca khám", data["shift"].toString())
+                }
+
             }
         }
 
