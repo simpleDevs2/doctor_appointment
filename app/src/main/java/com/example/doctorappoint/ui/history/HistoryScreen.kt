@@ -63,6 +63,7 @@ fun HistoryScreen(
         historyViewModel.getUserHistory(token)
     }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -76,6 +77,7 @@ fun HistoryScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             val filters = listOf("Đã thanh toán", "Đã tiếp nhận", "Đã khám", "Đã hủy")
             items(filters) { filter ->
                 val isSelected = selectedFilter == filter
@@ -137,13 +139,18 @@ fun HistoryScreen(
             }
 
             is NetworkResponse.Success -> {
-                val items = (historyState as NetworkResponse.Success).data.data
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(items) { item ->
-                        HistoryItemCard(item,navController)
-                    }
+                val allItems = (historyState as NetworkResponse.Success).data.data
+
+                val filteredItems = allItems.filter { it.status == selectedFilter }
+
+                LazyColumn(modifier = Modifier.padding(top=4.dp, bottom = 4.dp),verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                        items(filteredItems) { item ->
+                            HistoryItemCard(item, navController)
+                        }
                 }
             }
+
         }
     }
 }
