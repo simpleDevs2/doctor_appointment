@@ -87,14 +87,8 @@ class OtpService {
         awaitClose()
     }
 
-    fun getCurrentUser() = auth.currentUser
 
-    fun signOut() {
-        Log.d(TAG, "Signing out user")
-        auth.signOut()
-    }
 
-    fun isUserSignedIn(): Boolean {
-        return auth.currentUser != null
-    }
+
+
 } 

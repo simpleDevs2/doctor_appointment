@@ -102,7 +102,7 @@ fun SelectDepartmentScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFF0066CC))
+                    CircularProgressIndicator(color = PrimaryColor)
                     SpacerHeight(16.dp)
                     Text(
                         text = "Đang tải danh sách chuyên khoa...",

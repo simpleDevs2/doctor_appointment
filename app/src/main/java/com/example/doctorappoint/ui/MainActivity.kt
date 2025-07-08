@@ -24,6 +24,7 @@ import com.example.doctorappoint.navigation.WelcomeScreen
 import com.example.doctorappoint.ui.account.login.LoginScreen
 import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
 import com.example.doctorappoint.ui.account.register.RegisterScreen
+import com.example.doctorappoint.ui.history.HistoryDetailScreen
 import com.example.doctorappoint.ui.home.MainScreen
 import com.example.doctorappoint.ui.payment.PaymentScreen
 import com.example.doctorappoint.ui.payment.PaymentSuccessScreen
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
 
-          MyApp()
+         MyApp()
         }
 
     }
@@ -155,9 +156,16 @@ fun MyApp() {
             composable("selectDepartment") {
                 SelectDepartmentScreen(navController = navController)
             }
-            composable("booking/{departmentId}/{price}"){ backStackEntry ->
-                val departmentId = backStackEntry.arguments?.getString("departmentId")?.toIntOrNull()?:-1
-                val price = backStackEntry.arguments?.getString("price")?.toDoubleOrNull()?: 0.0
+
+            composable(
+                route = "booking/{departmentId}/{price}",
+                arguments = listOf(
+                    navArgument("departmentId") { type = NavType.IntType },
+                    navArgument("price") { type = NavType.FloatType }
+                )
+            ) { backStackEntry ->
+                val departmentId = backStackEntry.arguments?.getInt("departmentId") ?: -1
+                val price = backStackEntry.arguments?.getFloat("price")?.toDouble() ?: 0.0
                 BookingScreen(
                     navController = navController,
                     departmentId = departmentId,
@@ -167,8 +175,14 @@ fun MyApp() {
             composable("booking_date"){
                 BookingDateScreen(navController = navController)
             }
-            composable("booking_time_screen/{departmentId}/{date}") { backStackEntry ->
-                val departmentId = backStackEntry.arguments?.getString("departmentId")?.toIntOrNull() ?: -1
+            composable(
+                route = "booking_time_screen/{departmentId}/{date}",
+                arguments = listOf(
+                    navArgument("departmentId") { type = NavType.IntType },
+                    navArgument("date") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val departmentId = backStackEntry.arguments?.getInt("departmentId") ?: -1
                 val date = backStackEntry.arguments?.getString("date") ?: ""
                 BookingTimeScreen(navController = navController, departmentId = departmentId, date = date)
             }
@@ -181,7 +195,6 @@ fun MyApp() {
             composable("payment") {
                 PaymentScreen(navController = navController)
             }
-
             composable(
                 route = "payment_success/{transactionId}?bookingData={bookingData}",
                 arguments = listOf(
@@ -201,6 +214,18 @@ fun MyApp() {
                             popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         }
                     }
+                )
+            }
+            composable(
+                route = "history_detail/?historyData={historyData}",
+                arguments = listOf(
+                    navArgument("historyData") { type = NavType.StringType; nullable = true }
+                )
+            ) { backstackEntry->
+                val historyDataJson = backstackEntry.arguments?.getString("historyData")
+                HistoryDetailScreen(
+                    navController = navController,
+                    historyDataJson = historyDataJson
                 )
             }
         }

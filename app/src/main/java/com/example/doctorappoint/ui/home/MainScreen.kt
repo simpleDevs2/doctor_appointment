@@ -1,5 +1,8 @@
 package com.example.doctorappoint.ui.home
 
+import android.app.Activity
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -15,7 +18,11 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -28,6 +35,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.doctorappoint.ui.account.profile.AccountScreen
+import com.example.doctorappoint.ui.history.HistoryScreen
 import com.example.doctorappoint.ui.theme.PrimaryColor
 
 @Composable
@@ -38,6 +46,24 @@ fun MainScreen(
     val bottomBarNavController = rememberNavController()
     val navBackStackEntry by bottomBarNavController.currentBackStackEntryAsState()
     val context = LocalContext.current
+    var doubleBackToExitPressedOnce  by remember { mutableStateOf(false) }
+    val activity = context as? Activity
+
+    BackHandler(enabled = true) {
+        if (doubleBackToExitPressedOnce) {
+            activity?.finish()
+        } else {
+            doubleBackToExitPressedOnce = true
+            Toast.makeText(context, "Nhấn lần nữa để thoát", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(doubleBackToExitPressedOnce) {
+        if (doubleBackToExitPressedOnce) {
+            kotlinx.coroutines.delay(2000L)
+            doubleBackToExitPressedOnce = false
+        }
+    }
 
 
     data class BottomNavigationItem(
@@ -121,8 +147,7 @@ fun MainScreen(
                 HomeScreen(navController = navController)
             }
             composable("history") {
-                // Placeholder for History Screen
-                Text("History Screen Content")
+                HistoryScreen(navController = navController)
             }
             composable("notification") {
                 // Placeholder for Notification Screen

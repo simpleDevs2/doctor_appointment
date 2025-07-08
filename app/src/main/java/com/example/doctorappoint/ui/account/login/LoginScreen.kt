@@ -85,10 +85,8 @@ fun LoginScreen(
         when (val state = loginState) {
             is NetworkResponse.Success -> {
                 if (state.data.status) {
-                    // Save login data
                     LoginManager.saveLoginData(context, state.data.user, state.data.token)
                     Toast.makeText(context, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show()
-                    // Navigate to home screen
                     onLoginClick()
                 } else {
 
@@ -100,7 +98,7 @@ fun LoginScreen(
                 loginError = state.message
             }
             is NetworkResponse.Loading -> {
-                // Loading state - no action needed
+
             }
         }
     }
@@ -160,7 +158,7 @@ fun LoginScreen(
             val focusManager = LocalFocusManager.current
                 OutlinedTextField(
                     value = phoneNumber,
-                    onValueChange = { 
+                    onValueChange = {
                         phoneNumber = it
 
                         if (phoneNumberError.isNotEmpty()) {
@@ -193,7 +191,7 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(),
                     isError = phoneNumberError.isNotEmpty()
                 )
-                
+
 
                 if (phoneNumberError.isNotEmpty()) {
                     Text(
@@ -211,7 +209,7 @@ fun LoginScreen(
                 )
                 OutlinedTextField(
                     value = password,
-                    onValueChange = {  
+                    onValueChange = {
                         password = it
                         if (loginError.isNotEmpty()) {
                             loginError = ""
@@ -232,7 +230,6 @@ fun LoginScreen(
                     keyboardActions = KeyboardActions(
                         onDone = {
                             focusManager.clearFocus()
-                            // Handle login
                             if(checkEmptyFields(context, phoneNumber, password) { error -> phoneNumberError = error }){
                                 loginViewModel.login(phoneNumber, password)
                             }
@@ -277,6 +274,7 @@ fun LoginScreen(
                             Text(text = "Quên mật khẩu?", color = PrimaryColor)
                         }
                     }
+
 
 
                 Button(

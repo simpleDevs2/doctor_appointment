@@ -7,6 +7,7 @@ import com.example.doctorappoint.data.api.CreateOrder
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.data.api.RetrofitInstance
 import com.example.doctorappoint.model.AppointmentResponse
+import com.example.doctorappoint.model.ConfirmPaymentResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -36,6 +37,9 @@ class PaymentViewModel : ViewModel() {
     private val _appointmentState = MutableStateFlow<NetworkResponse<AppointmentResponse>>(NetworkResponse.Loading)
     val appointmentState: StateFlow<NetworkResponse<AppointmentResponse>> = _appointmentState
 
+    private val _confirmPaymentState = MutableStateFlow<NetworkResponse<ConfirmPaymentResponse>>(NetworkResponse.Loading)
+    val confirmPaymentState: StateFlow<NetworkResponse<ConfirmPaymentResponse>> = _confirmPaymentState
+
     suspend fun makeAppointment(userId: Int, scheduleDetailId: Int, appointmentTime: String): Boolean {
         return try {
             Log.d("PaymentViewModel", "Starting make payment process for user: $userId")
@@ -47,12 +51,33 @@ class PaymentViewModel : ViewModel() {
                 true
             } else {
                 _appointmentState.value = NetworkResponse.Error(response.message)
-                Log.w("PaymentViewModel", "Appointment failed: ${response.message}")
+                Log.d("PaymentViewModel", "Appointment failed: ${response.message}")
                 false
             }
         } catch (e: Exception) {
-            Log.e("PaymentViewModel", "Appointment failed with exception", e)
+            Log.d("PaymentViewModel", "Appointment failed with exception", e)
             _appointmentState.value = NetworkResponse.Error(e.message.toString())
+            false
+        }
+    }
+
+    suspend fun confirmPayment(userId: Int, bookingId: Int, zpTransId: String): Boolean {
+        return try {
+            Log.d("PaymentViewModel", "Starting confirm payment process for user: $userId")
+            _confirmPaymentState.value = NetworkResponse.Loading
+            val response = RetrofitInstance.confirmPayment().confirmPayment(userId, bookingId, zpTransId)
+            if (response.status) {
+                _confirmPaymentState.value = NetworkResponse.Success(response)
+                Log.d("PaymentViewModel", "Confirm payment success: ${response}")
+                true
+            } else {
+                _confirmPaymentState.value = NetworkResponse.Error(response.message)
+                Log.d("PaymentViewModel", "Confirm payment failed: ${response.message}")
+                false
+            }
+        }catch (e: Exception){
+            Log.d("PaymentViewModel", "confirm payment failed with exception", e)
+            _confirmPaymentState.value = NetworkResponse.Error(e.message.toString())
             false
         }
     }

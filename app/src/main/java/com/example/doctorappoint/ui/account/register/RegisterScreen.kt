@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -54,7 +55,8 @@ fun RegisterScreen(
     var phoneNumber by remember { mutableStateOf("") }
     val context = LocalContext.current
     val activity = context as? Activity
-
+    var password by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf("") }
     var phoneNumberError by remember { mutableStateOf("") }
     var otpError by remember { mutableStateOf("") }
 //    val otpState by otpViewModel.otpState.collectAsState()
@@ -77,6 +79,9 @@ fun RegisterScreen(
 //            }
 //        }
 //    }
+    val otpVerified = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.get<Boolean>("otpVerified") ?: false
 
     Column(
         modifier = Modifier
@@ -129,9 +134,9 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = phoneNumber,
-                onValueChange = { 
+                onValueChange = {
                     phoneNumber = it
-                    // Clear errors when user starts typing
+
                     if (phoneNumberError.isNotEmpty()) {
                         phoneNumberError = ""
                     }
@@ -155,8 +160,7 @@ fun RegisterScreen(
                 modifier = Modifier.fillMaxWidth(),
                 isError = phoneNumberError.isNotEmpty()
             )
-            
-            // Display phone number validation error
+
             if (phoneNumberError.isNotEmpty()) {
                 Text(
                     text = phoneNumberError,
@@ -165,7 +169,7 @@ fun RegisterScreen(
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
-            
+
             // Display OTP error
             if (otpError.isNotEmpty()) {
                 Text(
@@ -175,19 +179,60 @@ fun RegisterScreen(
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
+
+            if (otpVerified) {
+                Text(
+                    text = "Mật khẩu",
+                    fontSize = 16.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        if (passwordError.isNotEmpty()) passwordError = ""
+                    },
+                    placeholder = { Text("Nhập mật khẩu...") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = passwordError.isNotEmpty()
+                )
+                if (passwordError.isNotEmpty()) {
+                    Text(
+                        text = passwordError,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 16.dp)
+                    )
+                }
+            }
             SpacerHeight(16.dp)
 
             PrimaryActionButton(
-                text = "Đăng ký", 
+                text = "Đăng ký",
                 onClick = {
                     if (!PhoneNumberUtils.isValidVietnamesePhoneNumber(phoneNumber)) {
                         phoneNumberError = R.string.invalid_phone.toString()
                         return@PrimaryActionButton
                     }
-                    val fullPhoneNumber = PhoneNumberUtils.toInternationalFormat(phoneNumber)
-                  //  otpViewModel.sendOtp(fullPhoneNumber)
+                    if (otpVerified) {
+                        if (password.length < 8) {
+                            passwordError = "Mật khẩu phải có ít nhất 8 ký tự"
+                            return@PrimaryActionButton
+                        }
+                        // TODO: Gửi yêu cầu đăng ký thực tế tại đây
+                    } else {
+                        // bắt đầu gửi OTP
+                        val fullPhoneNumber = PhoneNumberUtils.toInternationalFormat(phoneNumber)
+                        // navigate sang OTP screen
+                       // onOtpVerificationClick(fullPhoneNumber)
+                    }
+
                 }
             )
+
+
 
             SpacerHeight(16.dp)
             Button(

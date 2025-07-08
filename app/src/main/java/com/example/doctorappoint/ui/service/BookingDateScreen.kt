@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.common.BackBtnAndTitle
 import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.ui.theme.PrimaryColor
+import com.example.doctorappoint.ui.theme.SecondaryColor
 import java.time.LocalDate
 import java.time.LocalTime.now
 import java.time.YearMonth
@@ -158,7 +160,7 @@ fun CalendarGrid(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Gray
+                    color = PrimaryColor
                 )
             }
         }
@@ -194,28 +196,32 @@ fun CalendarGrid(
 @Composable
 fun RowScope.DayCell(
     date: LocalDate,
-    today: LocalDate, // <- Nhận today
+    today: LocalDate,
     isSelected: Boolean,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val isPastDate = date.isBefore(today)
     val isToday = date.isEqual(today)
-    val isSunday = date.dayOfWeek.value == 7 // Chủ nhật là 7 trong Java Time
-    val isPastTodayAfter4PM = isToday && now().hour >= 16
+    val isSunday = date.dayOfWeek.value == 7
+    val isPastTodayAfter3PM = isToday && now().hour >= 15
+
 
     val cellColor = when {
         isSelected -> Color(0xFF26C6DA)
+        isToday && isPastTodayAfter3PM -> Color.LightGray
+        isToday -> Color.White
         isPastDate || isSunday -> Color.LightGray
-        else -> Color(0xFFF0F0F0)
+        else -> SecondaryColor
     }
 
     val textColor = when {
         isSelected -> Color.White
-        isPastDate || isSunday -> Color.Gray
-        else -> Color.Black
+        isPastDate || isSunday || isPastTodayAfter3PM -> Color.Gray
+        isToday ->Color.Gray
+        else -> Color.White
     }
 
-    val borderColor = if (isToday && !isSelected) Color(0xFF26C6DA) else Color.Transparent
+    val borderColor = if (isToday && !isSelected && !isPastTodayAfter3PM) Color(0xFF26C6DA) else Color.Transparent
 
     Box(
         modifier = Modifier
@@ -225,20 +231,20 @@ fun RowScope.DayCell(
             .clip(RoundedCornerShape(8.dp))
             .background(cellColor)
             .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-            .clickable(enabled = !isPastDate && !isSunday && !isPastTodayAfter4PM) { onDateSelected(date) }, // Không cho chọn chủ nhật
+            .clickable(enabled = !isPastDate && !isSunday && !isPastTodayAfter3PM) { onDateSelected(date) },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = date.dayOfMonth.toString(),
                 color = textColor,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Bold,
                 fontSize = 14.sp
             )
             if (isToday) {
                 Text(
                     text = "Hôm nay",
-                    color = if (isSelected) Color.White else Color(0xFF26C6DA),
+                    color = Color.Gray ,
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -254,8 +260,7 @@ fun CalendarLegend() {
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        LegendItem(color = Color(0xFF26C6DA), text = "Ngày đã chọn")
-        LegendItem(color = Color(0xFFF0F0F0), text = "Ngày có thể đăng ký")
+        LegendItem(color = SecondaryColor, text = "Ngày có thể đăng ký")
         LegendItem(color = Color.LightGray, text = "Ngày ngoài vùng đăng ký khám")
     }
 }

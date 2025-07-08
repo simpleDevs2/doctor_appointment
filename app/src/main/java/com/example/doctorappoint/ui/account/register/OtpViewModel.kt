@@ -96,9 +96,5 @@ class OtpViewModel : ViewModel() {
         isOtpRequestInProgress = false
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        // Clean up Firebase auth when ViewModel is cleared
-        otpService.signOut()
-    }
+
 }

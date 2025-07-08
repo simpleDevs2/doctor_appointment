@@ -6,6 +6,11 @@ data class AppointmentResponse(
     val data: BookingData
 )
 
+data class ConfirmPaymentResponse(
+    val status: Boolean,
+    val message: String
+)
+
 data class BookingData(
     val appointment_date: String,
     val appointment_time: String,

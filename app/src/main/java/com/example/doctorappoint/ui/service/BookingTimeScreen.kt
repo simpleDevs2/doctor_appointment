@@ -44,6 +44,9 @@ import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
 import com.example.doctorappoint.common.formatDateForAPI
 import com.example.doctorappoint.data.api.NetworkResponse
+import com.example.doctorappoint.ui.theme.PrimaryColor
+import java.time.LocalDate
+import java.time.LocalTime
 
 @Composable
 fun BookingTimeScreen(
@@ -68,7 +71,7 @@ fun BookingTimeScreen(
     val doctors = schedules.map { schedule ->
         DoctorTimeInfo(
             scheduleDetailId = schedule.doctors.firstOrNull()?.schedule_detail_id ?: 0,
-            doctorId = schedule.doctors.firstOrNull()?.id?: 0,
+            doctorId = schedule.doctors.firstOrNull()?.id ?: 0,
             name = schedule.doctors.firstOrNull()?.name ?: "Bác sĩ",
             room = schedule.room.name,
             dates = listOf(formatDateForAPI(schedule.working_date)),
@@ -83,7 +86,6 @@ fun BookingTimeScreen(
         )
     }
 
-    // state để lưu duy nhất 1 lựa chọn
     var selectedDoctor by remember { mutableStateOf<String?>(null) }
     var selectedSlot by remember { mutableStateOf<String?>(null) }
 
@@ -105,7 +107,7 @@ fun BookingTimeScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = PrimaryColor)
                 }
             }
 
@@ -144,11 +146,10 @@ fun BookingTimeScreen(
                                 ?.set("selected_doctor", doctorName)
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("room",doctor.room )
+                                ?.set("room", doctor.room)
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("doctor_id",doctor.doctorId )
-
+                                ?.set("doctor_id", doctor.doctorId)
                             navController.popBackStack()
                         }
                     )
@@ -166,6 +167,10 @@ fun DoctorTimeCard(
     selectedSlot: String?,
     onSlotSelected: (String, String) -> Unit
 ) {
+    val now = LocalTime.now()
+    val today = LocalDate.now()
+    val isToday = doctor.selectedDate == today.toString()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -228,7 +233,16 @@ fun DoctorTimeCard(
                         .padding(vertical = 4.dp)
                 ) {
                     rowSlots.forEach { slot ->
-                        val isSelected = (selectedDoctor == doctor.name && selectedSlot == slot.time && slot.enabled)
+                        val slotHour = slot.time.substringBefore(":").toIntOrNull() ?: 0
+                        val slotTime = LocalTime.of(slotHour, 0)
+
+                        val isPast = if (isToday) slotTime.isBefore(now) else false
+                        val isTooFar = if (isToday) slotTime.isAfter(now.plusHours(1)) else false
+
+                        val isEnabled = slot.enabled && !isPast && !isTooFar
+
+                        val isSelected = (selectedDoctor == doctor.name && selectedSlot == slot.time && isEnabled)
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -236,7 +250,7 @@ fun DoctorTimeCard(
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
                                     when {
-                                        !slot.enabled -> Color(0xFFE0E0E0)
+                                        !isEnabled -> Color(0xFFE0E0E0)
                                         isSelected -> Color(0xFF1976D2)
                                         else -> Color.White
                                     }
@@ -244,13 +258,13 @@ fun DoctorTimeCard(
                                 .border(
                                     width = 2.dp,
                                     color = when {
-                                        !slot.enabled -> Color(0xFFE0E0E0)
+                                        !isEnabled -> Color(0xFFE0E0E0)
                                         isSelected -> Color(0xFF1976D2)
                                         else -> Color(0xFF1976D2)
                                     },
                                     shape = RoundedCornerShape(8.dp)
                                 )
-                                .clickable(enabled = slot.enabled) {
+                                .clickable(enabled = isEnabled) {
                                     onSlotSelected(doctor.name, slot.time)
                                 },
                             contentAlignment = Alignment.Center
@@ -258,7 +272,7 @@ fun DoctorTimeCard(
                             Text(
                                 text = slot.time,
                                 color = when {
-                                    !slot.enabled -> Color.Gray
+                                    !isEnabled -> Color.Gray
                                     isSelected -> Color.White
                                     else -> Color(0xFF1976D2)
                                 },
@@ -276,7 +290,6 @@ fun DoctorTimeCard(
     }
 }
 
-
 fun parseTimeSlots(timeRange: String): List<TimeSlot> {
     val parts = timeRange.split("-")
     if (parts.size != 2) return emptyList()
@@ -290,8 +303,8 @@ fun parseTimeSlots(timeRange: String): List<TimeSlot> {
 }
 
 data class DoctorTimeInfo(
-   val scheduleDetailId :Int,
-   val doctorId :Int,
+    val scheduleDetailId: Int,
+    val doctorId: Int,
     val name: String,
     val room: String,
     val dates: List<String>,
