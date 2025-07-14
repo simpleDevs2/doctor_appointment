@@ -1,6 +1,6 @@
 package com.example.doctorappoint.ui.service
 
-import ScheduleResponse
+import ScheduleTimeSlot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,11 +42,11 @@ import androidx.navigation.NavHostController
 import com.example.doctorappoint.common.BackBtnAndTitle
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
-import com.example.doctorappoint.common.formatDateForAPI
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun BookingTimeScreen(
@@ -59,35 +59,40 @@ fun BookingTimeScreen(
     val doctorScheduleState by bookingViewModel.doctorSchedule.collectAsState()
 
     LaunchedEffect(departmentId, date) {
-        bookingViewModel.getDoctorSchedule(departmentId, date)
+           bookingViewModel.getDoctorSchedule(departmentId,date)
     }
 
-    val schedules = when (doctorScheduleState) {
-        is NetworkResponse.Success -> (doctorScheduleState as NetworkResponse.Success<List<ScheduleResponse>>).data
-        else -> emptyList()
-    }
     val isLoading = doctorScheduleState is NetworkResponse.Loading
+    val errorMessage = (doctorScheduleState as? NetworkResponse.Error)?.message
 
-    val doctors = schedules.map { schedule ->
-        DoctorTimeInfo(
-            scheduleDetailId = schedule.doctors.firstOrNull()?.schedule_detail_id ?: 0,
-            doctorId = schedule.doctors.firstOrNull()?.id ?: 0,
-            name = schedule.doctors.firstOrNull()?.name ?: "Bác sĩ",
-            room = schedule.room.name,
-            dates = listOf(formatDateForAPI(schedule.working_date)),
-            selectedDate = formatDateForAPI(schedule.working_date),
-            session = schedule.shift,
-            sessionColor = when (schedule.shift.lowercase()) {
-                "sáng", "morning" -> Color(0xFF7BC1B7)
-                "chiều", "afternoon" -> Color(0xFF0B8FAC)
-                else -> Color(0xFF1976D2)
-            },
-            timeSlots = parseTimeSlots(schedule.time)
-        )
+    val doctors:List<DoctorTimeInfo> = remember(doctorScheduleState){
+        when (val state = doctorScheduleState) {
+            is NetworkResponse.Success ->{
+                state.data.flatten().flatMap { scheduleResponse->
+                    scheduleResponse.doctors.map { doctor ->
+                        DoctorTimeInfo(
+                            scheduleDetailId = doctor.schedule_detail_id,
+                            doctorId = doctor.id,
+                            name = doctor.name,
+                            room = scheduleResponse.room.name,
+                            selectedDate = scheduleResponse.working_date,
+                            session = scheduleResponse.shift,
+                            sessionColor = when (scheduleResponse.shift.lowercase()) {
+                                "ca sáng", "sáng", "morning" -> Color(0xFF0B8FAC)
+                                "ca chiều", "chiều", "afternoon" -> Color(0xFF0B8FAC)
+                                else -> Color(0xFF1976D2)
+                            },
+                            timeSlots = doctor.slots
+                        )
+                    }
+                }
+            }
+            else -> emptyList()
+        }
     }
 
-    var selectedDoctor by remember { mutableStateOf<String?>(null) }
-    var selectedSlot by remember { mutableStateOf<String?>(null) }
+    var selectedDoctorName by remember { mutableStateOf<String?>(null) }
+    var selectedSlotStartTime by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = modifier
@@ -110,6 +115,22 @@ fun BookingTimeScreen(
                     CircularProgressIndicator(color = PrimaryColor)
                 }
             }
+            errorMessage != null -> {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Lỗi: $errorMessage",
+                    fontSize = 16.sp,
+                    color = Color.Red,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
 
             doctors.isEmpty() -> {
                 Box(
@@ -130,26 +151,26 @@ fun BookingTimeScreen(
                 doctors.forEach { doctor ->
                     DoctorTimeCard(
                         doctor = doctor,
-                        selectedDoctor = selectedDoctor,
-                        selectedSlot = selectedSlot,
-                        onSlotSelected = { doctorName, slotTime ->
-                            selectedDoctor = doctorName
-                            selectedSlot = slotTime
+                        selectedDoctorName = selectedDoctorName,
+                        selectedSlotTime = selectedSlotStartTime,
+                        onSlotSelected = { selectedDocInfo, selectedTimeSlot  ->
+                            selectedDoctorName  = selectedDocInfo.name
+                            selectedSlotStartTime   = selectedTimeSlot.start_time
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("schedule_detail_id", doctor.scheduleDetailId)
+                                ?.set("schedule_detail_id", selectedDocInfo.scheduleDetailId)
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("selected_time", slotTime)
+                                ?.set("selected_time", selectedTimeSlot.start_time)
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("selected_doctor", doctorName)
+                                ?.set("selected_doctor", selectedDocInfo.name)
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("room", doctor.room)
+                                ?.set("room", selectedDocInfo.room)
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
-                                ?.set("doctor_id", doctor.doctorId)
+                                ?.set("doctor_id", selectedDocInfo.doctorId)
                             navController.popBackStack()
                         }
                     )
@@ -163,13 +184,18 @@ fun BookingTimeScreen(
 @Composable
 fun DoctorTimeCard(
     doctor: DoctorTimeInfo,
-    selectedDoctor: String?,
-    selectedSlot: String?,
-    onSlotSelected: (String, String) -> Unit
+    selectedDoctorName: String?,
+    selectedSlotTime: String?,
+    onSlotSelected: (DoctorTimeInfo, ScheduleTimeSlot) -> Unit
 ) {
-    val now = LocalTime.now()
-    val today = LocalDate.now()
-    val isToday = doctor.selectedDate == today.toString()
+    val currentDate = LocalDate.now()
+    val currentLocalTime = LocalTime.now()
+
+    val selectedLocalDate = remember(doctor.selectedDate) {
+        LocalDate.parse(doctor.selectedDate, DateTimeFormatter.ISO_LOCAL_DATE)
+    }
+    // check ngay hien tai
+    val isSelectedDateToday = selectedLocalDate.isEqual(currentDate)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -233,15 +259,17 @@ fun DoctorTimeCard(
                         .padding(vertical = 4.dp)
                 ) {
                     rowSlots.forEach { slot ->
-                        val slotHour = slot.time.substringBefore(":").toIntOrNull() ?: 0
-                        val slotTime = LocalTime.of(slotHour, 0)
+                        val slotStartTime = LocalTime.parse(slot.start_time)
+                        val MAX_BOOKED_SLOTS = 4
+                        // check full lich
+                        val isFullyBooked = slot.booked_slots_count >= MAX_BOOKED_SLOTS
+                        // check da troi qua gio dat chua
+                        val isPastTime = isSelectedDateToday && slotStartTime.isBefore(currentLocalTime)
 
-                        val isPast = if (isToday) slotTime.isBefore(now) else false
-                        val isTooFar = if (isToday) slotTime.isAfter(now.plusHours(1)) else false
+                        val isEnabled = !isFullyBooked && !isPastTime
+                        val isSelected = (selectedDoctorName == doctor.name && selectedSlotTime == slot.start_time && isEnabled)
 
-                        val isEnabled = slot.enabled && !isPast && !isTooFar
 
-                        val isSelected = (selectedDoctor == doctor.name && selectedSlot == slot.time && isEnabled)
 
                         Box(
                             modifier = Modifier
@@ -251,7 +279,7 @@ fun DoctorTimeCard(
                                 .background(
                                     when {
                                         !isEnabled -> Color(0xFFE0E0E0)
-                                        isSelected -> Color(0xFF1976D2)
+                                        isSelected -> PrimaryColor
                                         else -> Color.White
                                     }
                                 )
@@ -259,22 +287,22 @@ fun DoctorTimeCard(
                                     width = 2.dp,
                                     color = when {
                                         !isEnabled -> Color(0xFFE0E0E0)
-                                        isSelected -> Color(0xFF1976D2)
-                                        else -> Color(0xFF1976D2)
+                                        isSelected -> PrimaryColor
+                                        else ->  PrimaryColor
                                     },
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable(enabled = isEnabled) {
-                                    onSlotSelected(doctor.name, slot.time)
+                                    onSlotSelected(doctor, slot)
                                 },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = slot.time,
+                                text = "${slot.start_time}-${slot.end_time}",
                                 color = when {
                                     !isEnabled -> Color.Gray
                                     isSelected -> Color.White
-                                    else -> Color(0xFF1976D2)
+                                    else ->  PrimaryColor
                                 },
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -290,31 +318,14 @@ fun DoctorTimeCard(
     }
 }
 
-fun parseTimeSlots(timeRange: String): List<TimeSlot> {
-    val parts = timeRange.split("-")
-    if (parts.size != 2) return emptyList()
-    val start = parts[0].substringBefore(":").toIntOrNull() ?: return emptyList()
-    val end = parts[1].substringBefore(":").toIntOrNull() ?: return emptyList()
-    return (start until end).map { hour ->
-        val from = "%02d:00".format(hour)
-        val to = "%02d:00".format(hour + 1)
-        TimeSlot("$from - $to", true)
-    }
-}
-
 data class DoctorTimeInfo(
     val scheduleDetailId: Int,
     val doctorId: Int,
     val name: String,
     val room: String,
-    val dates: List<String>,
     val selectedDate: String,
     val session: String,
     val sessionColor: Color,
-    val timeSlots: List<TimeSlot>
+    val timeSlots: List<ScheduleTimeSlot>
 )
 
-data class TimeSlot(
-    val time: String,
-    val enabled: Boolean
-)

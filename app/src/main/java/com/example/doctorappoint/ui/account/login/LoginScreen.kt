@@ -89,7 +89,6 @@ fun LoginScreen(
                     Toast.makeText(context, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show()
                     onLoginClick()
                 } else {
-
                     loginError = state.data.message
                 }
             }

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -60,7 +61,9 @@ fun HistoryScreen(
     var selectedFilter by remember { mutableStateOf("Đã thanh toán") }
 
     LaunchedEffect(Unit) {
-        historyViewModel.getUserHistory(token)
+       if(token.isNotEmpty()){
+           historyViewModel.getUserHistory(token)
+       }
     }
 
 
@@ -112,28 +115,34 @@ fun HistoryScreen(
 
         when (historyState) {
             is NetworkResponse.Loading -> {
-                Column(
+                Box(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = PrimaryColor)
-                    SpacerHeight(12.dp)
-                    Text("Đang tải dữ liệu...", color = Color.Gray)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = PrimaryColor)
+                        SpacerHeight(12.dp)
+                        Text("Đang tải danh sách đặt khám", color = Color.Gray)
+                    }
                 }
             }
 
             is NetworkResponse.Error -> {
                 val message = (historyState as NetworkResponse.Error).message
-                Column(
+                Box(
                     modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("Lỗi: $message", color = Color.Red)
-                    SpacerHeight(12.dp)
-                    Button(onClick = { historyViewModel.getUserHistory(token) }) {
-                        Text("Thử lại")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Lỗi: $message", color = Color.Red, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        SpacerHeight(12.dp)
+                        Button(onClick = {
+                            if (token.isNotEmpty()) {
+                                historyViewModel.getUserHistory(token)
+                            }
+                        }) {
+                            Text("Thử lại")
+                        }
                     }
                 }
             }
@@ -143,14 +152,25 @@ fun HistoryScreen(
 
                 val filteredItems = allItems.filter { it.status == selectedFilter }
 
-                LazyColumn(modifier = Modifier.padding(top=4.dp, bottom = 4.dp),verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
+                if (filteredItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Không có lịch sử khám bệnh cho mục này.",
+                            fontSize = 16.sp,
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.padding(top=4.dp, bottom = 4.dp),verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(filteredItems) { item ->
                             HistoryItemCard(item, navController)
                         }
+                    }
                 }
             }
-
         }
     }
 }
@@ -163,6 +183,7 @@ fun HistoryItemCard(item: UserHistory,navController: NavHostController) {
         elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier
             .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 4.dp)
             .clickable{
                 val historyDataMap = mapOf(
                     "appointment_date" to item.appointment_date,
@@ -171,6 +192,7 @@ fun HistoryItemCard(item: UserHistory,navController: NavHostController) {
                     "doctor" to item.doctor,
                     "payment_amount" to item.payment_amount,
                     "payment_status" to item.payment_status,
+                    "payment_reference" to item.payment_reference,
                     "room" to item.room,
                     "schedule_detail_id" to item.schedule_detail_id,
                     "status" to item.status
@@ -189,7 +211,7 @@ fun HistoryItemCard(item: UserHistory,navController: NavHostController) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Khoa: ${item.department.uppercase()}",
+                    text = "Khoa: ${item.department?.uppercase()}",
                     fontWeight = FontWeight.Bold,
                     color = PrimaryColor,
                     fontSize = 16.sp

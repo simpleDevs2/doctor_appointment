@@ -53,6 +53,7 @@ import com.example.doctorappoint.common.LoginManager
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
 import com.example.doctorappoint.data.api.NetworkResponse
+import com.example.doctorappoint.model.User
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import com.example.doctorappoint.ui.theme.PrimaryColorLight
 
@@ -75,7 +76,6 @@ fun AccountScreen(
         when (logoutState) {
             is NetworkResponse.Success -> {
                 LoginManager.logout(context)
-                Toast.makeText(context, "Đăng xuất thành công!", Toast.LENGTH_SHORT).show()
                 onLogout()
             }
             is NetworkResponse.Error -> {
@@ -153,7 +153,7 @@ fun AccountScreen(
                                 if (!token.isNullOrEmpty()) {
                                     logoutViewModel.logout(token)
                                 }
-                             //  LoginManager.logout(context)
+                              // LoginManager.logout(context)
 
                             },
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
@@ -170,7 +170,7 @@ fun AccountScreen(
 }
 
 @Composable
-fun TopSection(user: com.example.doctorappoint.model.User?) {
+fun TopSection(user: User?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

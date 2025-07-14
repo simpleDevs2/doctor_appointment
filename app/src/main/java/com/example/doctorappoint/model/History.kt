@@ -12,7 +12,7 @@ data class UserHistory(
     val department: String,
     val doctor: String,
     val payment_amount: String,
-    val payment_reference: Any,
+    val payment_reference: String,
     val payment_status: String,
     val room: String,
     val schedule_detail_id: Int,

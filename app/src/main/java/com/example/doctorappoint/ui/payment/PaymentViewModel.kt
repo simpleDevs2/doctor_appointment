@@ -6,11 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.example.doctorappoint.data.api.CreateOrder
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.data.api.RetrofitInstance
+import com.example.doctorappoint.model.ApiError
 import com.example.doctorappoint.model.AppointmentResponse
 import com.example.doctorappoint.model.ConfirmPaymentResponse
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 
 data class PaymentUiState(
     val amount: String = "10000",
@@ -41,44 +45,142 @@ class PaymentViewModel : ViewModel() {
     val confirmPaymentState: StateFlow<NetworkResponse<ConfirmPaymentResponse>> = _confirmPaymentState
 
     suspend fun makeAppointment(userId: Int, scheduleDetailId: Int, appointmentTime: String): Boolean {
-        return try {
-            Log.d("PaymentViewModel", "Starting make payment process for user: $userId")
-            _appointmentState.value = NetworkResponse.Loading
+        Log.d("PaymentViewModel", "Starting make appointment process for user: $userId")
+        _appointmentState.value = NetworkResponse.Loading
+        try {
             val response = RetrofitInstance.makeAppointment().makeAppointment(userId, scheduleDetailId, appointmentTime)
-            if (response.status) {
-                _appointmentState.value = NetworkResponse.Success(response)
-                Log.d("PaymentViewModel", "Appointment success: ${response}")
-                true
+            if (response.isSuccessful) {
+
+                val appointmentResponse = response.body()
+                if (appointmentResponse != null && appointmentResponse.status) {
+                    _appointmentState.value = NetworkResponse.Success(appointmentResponse)
+                    return true
+                } else {
+                    val errorMessage = appointmentResponse?.message ?: "Lỗi đặt lịch không xác định."
+                    _appointmentState.value = NetworkResponse.Error(errorMessage)
+                    return false
+                }
             } else {
-                _appointmentState.value = NetworkResponse.Error(response.message)
-                Log.d("PaymentViewModel", "Appointment failed: ${response.message}")
-                false
+
+                val errorBody = response.errorBody()?.string()
+                var errorMessage: String
+                if (errorBody != null) {
+                    try {
+                        val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                        errorMessage = apiError.message ?: "Lỗi từ server không xác định (mã: ${response.code()})."
+                        Log.e("PaymentViewModel", "Appointment API error: $errorMessage (Code: ${response.code()})")
+                    } catch (e: Exception) {
+                        errorMessage = "Lỗi khi xử lý phản hồi lỗi từ server (mã: ${response.code()})."
+                        Log.e("PaymentViewModel", "Failed to parse error body for code ${response.code()}: $errorBody", e)
+                    }
+                } else {
+                    errorMessage = "Lỗi server (mã: ${response.code()})."
+                    Log.e("PaymentViewModel", "Error response with empty body (Code: ${response.code()})")
+                }
+                _appointmentState.value = NetworkResponse.Error(errorMessage)
+                return false
             }
-        } catch (e: Exception) {
-            Log.d("PaymentViewModel", "Appointment failed with exception", e)
-            _appointmentState.value = NetworkResponse.Error(e.message.toString())
-            false
+        }catch (e: HttpException){
+            val errorBody = e.response()?.errorBody()?.string()
+            var errorMessage: String
+            if (errorBody != null) {
+                try {
+                    val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                    errorMessage = apiError.message ?: "Lỗi HTTP không xác định (mã: ${e.code()})."
+                    Log.e("PaymentViewModel", "Appointment HTTP Exception: $errorMessage (Code: ${e.code()})", e)
+                } catch (parseError: Exception) {
+                    errorMessage = "Lỗi HTTP nhưng không parse được body (mã: ${e.code()})."
+                    Log.e("PaymentViewModel", "Appointment HTTP Exception, failed to parse error body: $errorBody", parseError)
+                }
+            } else {
+                errorMessage = "Lỗi HTTP (mã: ${e.code()})."
+                Log.e("PaymentViewModel", "Appointment HTTP Exception with empty body (Code: ${e.code()})", e)
+            }
+            _appointmentState.value = NetworkResponse.Error(errorMessage)
+            return false
+        }
+        catch (e: IOException){
+            val errorMessage = "Không có kết nối internet hoặc lỗi mạng."
+            Log.e("PaymentViewModel", "Appointment Network Error: ${e.message}", e)
+            _appointmentState.value = NetworkResponse.Error(errorMessage)
+            return false
+        }
+        catch (e: Exception) {
+            val errorMessage = e.message ?: "Đã xảy ra lỗi không xác định khi đặt lịch."
+            Log.e("PaymentViewModel", "Appointment Unknown Error: $errorMessage", e)
+            _appointmentState.value = NetworkResponse.Error(errorMessage)
+            return false
         }
     }
 
     suspend fun confirmPayment(userId: Int, bookingId: Int, zpTransId: String): Boolean {
-        return try {
-            Log.d("PaymentViewModel", "Starting confirm payment process for user: $userId")
-            _confirmPaymentState.value = NetworkResponse.Loading
+        Log.d("PaymentViewModel", "Starting confirm payment process for user: $userId")
+        _confirmPaymentState.value = NetworkResponse.Loading
+        try {
             val response = RetrofitInstance.confirmPayment().confirmPayment(userId, bookingId, zpTransId)
-            if (response.status) {
-                _confirmPaymentState.value = NetworkResponse.Success(response)
-                Log.d("PaymentViewModel", "Confirm payment success: ${response}")
-                true
+            if (response.isSuccessful) {
+                val confirmResponse = response.body()
+                if (confirmResponse != null && confirmResponse.status) {
+                    _confirmPaymentState.value = NetworkResponse.Success(confirmResponse)
+                    Log.d("PaymentViewModel", "Confirm payment success: $confirmResponse")
+                    return true
+                } else {
+                    val errorMessage = confirmResponse?.message ?: "Xác nhận thanh toán không thành công."
+                    _confirmPaymentState.value = NetworkResponse.Error(errorMessage)
+                    Log.d("PaymentViewModel", "Confirm payment failed with success status false: $errorMessage")
+                    return false
+                }
             } else {
-                _confirmPaymentState.value = NetworkResponse.Error(response.message)
-                Log.d("PaymentViewModel", "Confirm payment failed: ${response.message}")
-                false
+                val errorBody = response.errorBody()?.string()
+                var errorMessage: String
+                if (errorBody != null) {
+                    try {
+                        val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                        errorMessage = apiError.message ?: "Lỗi từ server không xác định."
+                        Log.e("PaymentViewModel", "Confirm Payment API error: $errorMessage (Code: ${response.code()})")
+                    } catch (e: Exception) {
+                        errorMessage = "Lỗi khi xử lý phản hồi lỗi từ server (mã: ${response.code()})."
+                        Log.e("PaymentViewModel", "Failed to parse error body: $errorBody", e)
+                    }
+                } else {
+                    errorMessage = "Lỗi server (mã: ${response.code()})."
+                    Log.e("PaymentViewModel", "Error response with empty body (Code: ${response.code()})")
+                }
+                _confirmPaymentState.value = NetworkResponse.Error(errorMessage)
+                Log.d("PaymentViewModel", "Confirm Payment failed with HTTP error: $errorMessage")
+                return false
             }
-        }catch (e: Exception){
-            Log.d("PaymentViewModel", "confirm payment failed with exception", e)
-            _confirmPaymentState.value = NetworkResponse.Error(e.message.toString())
-            false
+        } catch (e: HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            var errorMessage: String
+            if (errorBody != null) {
+                try {
+                    val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                    errorMessage = apiError.message ?: "Lỗi HTTP không xác định."
+                    Log.e("PaymentViewModel", "Confirm Payment HTTP Exception: $errorMessage (Code: ${e.code()})", e)
+                } catch (parseError: Exception) {
+                    errorMessage = "Lỗi HTTP nhưng không parse được body (mã: ${e.code()})."
+                    Log.e("PaymentViewModel", "Confirm Payment HTTP Exception, failed to parse error body: $errorBody", parseError)
+                }
+            } else {
+                errorMessage = "Lỗi HTTP (mã: ${e.code()})."
+                Log.e("PaymentViewModel", "Confirm Payment HTTP Exception with empty body (Code: ${e.code()})", e)
+            }
+            _confirmPaymentState.value = NetworkResponse.Error(errorMessage)
+            Log.d("PaymentViewModel", "Confirm Payment failed with HTTP Exception: $errorMessage")
+            return false
+        } catch (e: IOException) {
+            val errorMessage = "Không có kết nối internet hoặc lỗi mạng."
+            Log.e("PaymentViewModel", "Confirm Payment Network Error: ${e.message}", e)
+            _confirmPaymentState.value = NetworkResponse.Error(errorMessage)
+            Log.d("PaymentViewModel", "Confirm Payment failed with Network Error: $errorMessage")
+            return false
+        } catch (e: Exception) {
+            val errorMessage = e.message ?: "Đã xảy ra lỗi không xác định khi xác nhận thanh toán."
+            Log.e("PaymentViewModel", "Confirm Payment Unknown Error: $errorMessage", e)
+            _confirmPaymentState.value = NetworkResponse.Error(errorMessage)
+            Log.d("PaymentViewModel", "Confirm Payment failed with Unknown Error: $errorMessage")
+            return false
         }
     }
 

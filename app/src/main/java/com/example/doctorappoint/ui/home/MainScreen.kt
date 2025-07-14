@@ -150,7 +150,7 @@ fun MainScreen(
                 HistoryScreen(navController = navController)
             }
             composable("notification") {
-                // Placeholder for Notification Screen
+
                 Text("Notification Screen Content")
             }
             composable("profile") {

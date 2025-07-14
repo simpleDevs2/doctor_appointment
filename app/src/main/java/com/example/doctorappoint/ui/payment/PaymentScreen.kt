@@ -66,15 +66,18 @@ import java.util.Locale
 fun PaymentScreen(
     navController: NavHostController
 ) {
-
-
     val context = LocalContext.current
     val activity  = context as? Activity
     val paymentViewModel : PaymentViewModel = viewModel()
+
     val uiState by paymentViewModel.uiState.collectAsState()
     val paymentState by paymentViewModel.appointmentState.collectAsState()
+    val confirmPaymentState by paymentViewModel.confirmPaymentState.collectAsState()
+
     var showCancelDialog by remember { mutableStateOf(false) }
 
+    var showApiErrorDialog by remember { mutableStateOf(false) }
+    var apiErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val previousEntry = navController.previousBackStackEntry
     val appointment = previousEntry
@@ -91,6 +94,24 @@ fun PaymentScreen(
         .replace("VND", "₫")
 
     val user = LoginManager.getUser(context)
+
+    LaunchedEffect(paymentState) {
+        if (paymentState is NetworkResponse.Error) {
+            val message = (paymentState as NetworkResponse.Error).message
+            apiErrorMessage = message
+            showApiErrorDialog = true
+            Log.d("PaymentScreen", "Appointment API Error: $message")
+        }
+    }
+
+    LaunchedEffect(confirmPaymentState) {
+        if (confirmPaymentState is NetworkResponse.Error) {
+            val message = (confirmPaymentState as NetworkResponse.Error).message
+            apiErrorMessage = message
+            showApiErrorDialog = true
+            Log.d("PaymentScreen", "Confirm Payment API Error: $message")
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -232,30 +253,32 @@ fun PaymentScreen(
             onClick = {
                 Log.d("PaymentScreen", "Voi $scheduleDetailId va $selectedTime")
                 Log.d("PaymentScreen", "Time $timeToSend")
+                apiErrorMessage = null
+                showApiErrorDialog = false
                 paymentViewModel.viewModelScope.launch {
-                    val success = paymentViewModel.makeAppointment(
+                    paymentViewModel.makeAppointment(
                         userId = user?.id?.toInt() ?: -1,
                         scheduleDetailId = scheduleDetailId,
                         appointmentTime = timeToSend
                     )
-                    if (success) {
-                        paymentViewModel.handleEvent(PaymentEvent.AmountChanged(price.toInt().toString()))
-                        paymentViewModel.handleEvent(PaymentEvent.CreateOrder)
-                        Log.d("PaymentScreen", "Appointment ok, creating order...")
-                    } else {
-                        Log.d("PaymentScreen", "Appointment failed, do not continue payment")
-                        AlertDialog.Builder(activity)
-                            .setTitle("Đặt lịch thất bại")
-                            .setMessage("Không thể đặt lịch khám, vui lòng thử lại sau.")
-                            .setPositiveButton("OK", null)
-                            .show()
-                    }
                 }
-
-                Log.d("PaymentScreen", "Thanh toán button clicked, creating order...")
             },
         )
+    }
 
+    LaunchedEffect(paymentState) {
+        if (paymentState is NetworkResponse.Success) {
+            val bookingData = (paymentState as NetworkResponse.Success).data.data
+            if (bookingData != null && activity != null) {
+                paymentViewModel.handleEvent(PaymentEvent.AmountChanged(price.toInt().toString()))
+                paymentViewModel.handleEvent(PaymentEvent.CreateOrder)
+                Log.d("PaymentScreen", "Appointment successful, creating order for ZaloPay...")
+            } else {
+                apiErrorMessage = "Dữ liệu đặt lịch trả về không hợp lệ hoặc lỗi ngữ cảnh ứng dụng."
+                showApiErrorDialog = true
+                Log.e("PaymentScreen", apiErrorMessage ?: "Unknown error after successful appointment API.")
+            }
+        }
     }
 
     if (uiState.showToken && activity != null) {
@@ -274,11 +297,12 @@ fun PaymentScreen(
                             "PaymentScreen",
                             "Payment succeeded: transactionId=$transactionId, transToken=$transToken")
                         paymentViewModel.handleEvent(PaymentEvent.ClearSuccess)
-                        when (val currentState = paymentState) {
-                            is NetworkResponse.Success -> {
-                                val bookingData = currentState.data.data
-                                Log.d("PaymentScreen", "Data response $bookingData")
 
+                        val currentAppointmentState = paymentViewModel.appointmentState.value
+
+                        if (currentAppointmentState is NetworkResponse.Success) {
+                            val bookingData = currentAppointmentState.data.data
+                            if (bookingData != null) {
                                 val bookingMap = mapOf(
                                     "booking_id" to bookingData.booking_id,
                                     "appointment_date" to bookingData.appointment_date,
@@ -298,26 +322,18 @@ fun PaymentScreen(
                                 paymentViewModel.viewModelScope.launch {
                                     val userId = user?.id?.toInt() ?: -1
                                     val bookingId = bookingData.booking_id
-                                    val confirmOk = paymentViewModel.confirmPayment(userId, bookingId, transactionId)
-                                    if (confirmOk) {
-                                        Log.d("PaymentScreen", "Confirm payment ok")
-                                        navController.navigate(
-                                            "payment_success/${transactionId}?bookingData=${
-                                                Uri.encode(
-                                                    bookingJson
-                                                )
-                                            }"
-                                        ) {
-                                            popUpTo(navController.graph.startDestinationId)
-                                            launchSingleTop = true
-                                        }
-                                    }
-
+                                    paymentViewModel.confirmPayment(userId, bookingId, transactionId)
                                 }
+                            }else {
+                                Log.e("PaymentScreen", "BookingData is null after ZaloPay success.")
+                                apiErrorMessage = "Không thể lấy thông tin đặt lịch để xác nhận thanh toán."
+                                showApiErrorDialog = true
                             }
 
-                            is NetworkResponse.Error -> TODO()
-                            NetworkResponse.Loading -> TODO()
+                        }else {
+                            Log.e("PaymentScreen", "appointmentState is not Success after ZaloPay success.")
+                            apiErrorMessage = "Trạng thái đặt lịch không hợp lệ sau khi thanh toán ZaloPay thành công."
+                            showApiErrorDialog = true
                         }
 
                     }
@@ -351,6 +367,56 @@ fun PaymentScreen(
             )
         }
     }
+    LaunchedEffect(confirmPaymentState) {
+        if (confirmPaymentState is NetworkResponse.Success) {
+            val currentAppointmentState = paymentViewModel.appointmentState.value
+            if (currentAppointmentState is NetworkResponse.Success) {
+                val bookingData = currentAppointmentState.data.data
+                val bookingMap = mapOf(
+                    "booking_id" to bookingData?.booking_id,
+                    "appointment_date" to bookingData?.appointment_date,
+                    "appointment_time" to bookingData?.appointment_time,
+                    "doctor_name" to bookingData?.doctor_name,
+                    "room_name" to bookingData?.room_name,
+                    "shift" to bookingData?.shift,
+                    "schedule_id" to bookingData?.schedule_id,
+                    "doctor_id" to bookingData?.doctor_id,
+                    "room_id" to bookingData?.room_id,
+                    "schedule_detail_id" to bookingData?.schedule_detail_id,
+                    "working_date" to bookingData?.working_date
+                )
+                val bookingJson = Gson().toJson(bookingMap)
+                val transactionId = (confirmPaymentState as NetworkResponse.Success).data.message // Giả sử transactionId nằm trong message của ConfirmPaymentResponse
+                navController.navigate(
+                    "payment_success/${transactionId}?bookingData=${
+                        Uri.encode(
+                            bookingJson
+                        )
+                    }"
+                ) {
+                    popUpTo(navController.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            } else {
+                Log.e("PaymentScreen", "appointmentState is not Success when confirmPaymentState is Success.")
+                apiErrorMessage = "Không thể lấy dữ liệu đặt lịch sau khi xác nhận thanh toán thành công."
+                showApiErrorDialog = true
+            }
+        }
+    }
+    if (showApiErrorDialog && apiErrorMessage != null) {
+        AlertDialog.Builder(activity)
+            .setTitle("Thông báo")
+            .setMessage(apiErrorMessage)
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+                showApiErrorDialog = false
+                apiErrorMessage = null
+            }
+            .show()
+    }
+
+
     if (showCancelDialog) {
         Dialog(onDismissRequest = { showCancelDialog = false }) {
             Box(

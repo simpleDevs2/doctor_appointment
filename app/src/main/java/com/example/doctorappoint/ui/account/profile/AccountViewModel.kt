@@ -14,8 +14,6 @@ class AccountViewModel : ViewModel(){
     private val _logoutState = MutableStateFlow<NetworkResponse<Unit>>(NetworkResponse.Loading)
     val logoutState: StateFlow<NetworkResponse<Unit>> = _logoutState
 
-
-
     fun logout(token: String) {
         viewModelScope.launch {
             try {

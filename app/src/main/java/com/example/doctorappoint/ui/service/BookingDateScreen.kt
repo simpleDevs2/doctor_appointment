@@ -43,7 +43,7 @@ import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import com.example.doctorappoint.ui.theme.SecondaryColor
 import java.time.LocalDate
-import java.time.LocalTime.now
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.util.Locale
@@ -203,12 +203,13 @@ fun RowScope.DayCell(
     val isPastDate = date.isBefore(today)
     val isToday = date.isEqual(today)
     val isSunday = date.dayOfWeek.value == 7
-    val isPastTodayAfter3PM = isToday && now().hour >= 15
 
+    val cutoffTime = LocalTime.of(14, 30)
+    val isPastTodayCutoff = isToday && LocalTime.now().isAfter(cutoffTime)
 
     val cellColor = when {
         isSelected -> Color(0xFF26C6DA)
-        isToday && isPastTodayAfter3PM -> Color.LightGray
+        isToday && isPastTodayCutoff -> Color.LightGray
         isToday -> Color.White
         isPastDate || isSunday -> Color.LightGray
         else -> SecondaryColor
@@ -216,13 +217,13 @@ fun RowScope.DayCell(
 
     val textColor = when {
         isSelected -> Color.White
-        isPastDate || isSunday || isPastTodayAfter3PM -> Color.Gray
+        isPastDate || isSunday || isPastTodayCutoff -> Color.Gray
         isToday ->Color.Gray
         else -> Color.White
     }
 
-    val borderColor = if (isToday && !isSelected && !isPastTodayAfter3PM) Color(0xFF26C6DA) else Color.Transparent
-
+    val borderColor = if (isToday && !isSelected && !isPastTodayCutoff) Color(0xFF26C6DA) else Color.Transparent
+    val isClickable = !isPastDate && !isSunday && !isPastTodayCutoff
     Box(
         modifier = Modifier
             .weight(1f)
@@ -231,7 +232,7 @@ fun RowScope.DayCell(
             .clip(RoundedCornerShape(8.dp))
             .background(cellColor)
             .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-            .clickable(enabled = !isPastDate && !isSunday && !isPastTodayAfter3PM) { onDateSelected(date) },
+            .clickable(enabled = isClickable) { onDateSelected(date) },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

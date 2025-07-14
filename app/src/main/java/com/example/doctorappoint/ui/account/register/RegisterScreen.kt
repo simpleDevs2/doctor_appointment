@@ -180,7 +180,7 @@ fun RegisterScreen(
                 )
             }
 
-            if (otpVerified) {
+            if (otpVerified == false) {
                 Text(
                     text = "Mật khẩu",
                     fontSize = 16.sp,

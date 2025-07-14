@@ -17,7 +17,7 @@ interface UserApi {
     suspend fun userLogin(
         @Field("phone") phone: String,
         @Field("password") password: String
-    ): LoginResponse
+    ): Response< LoginResponse>
 
     @POST("/logout")
     suspend fun userLogout(
@@ -28,5 +28,5 @@ interface UserApi {
     suspend fun updateProfile(
         @Header("Authorization") token: String,
        @Body updateProfile: UpdateProfile
-    ):UpdateProfileResponse
+    ): Response<UpdateProfileResponse>
 }
