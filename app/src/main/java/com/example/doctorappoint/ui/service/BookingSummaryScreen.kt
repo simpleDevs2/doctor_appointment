@@ -1,6 +1,5 @@
 package com.example.doctorappoint.ui.service
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,7 +44,6 @@ fun BookingSummaryScreen(
     val context = LocalContext.current
     val user = LoginManager.getUser(context)
 
-    // Lấy bookingData từ previousBackStackEntry
     val previousEntry = navController.previousBackStackEntry
     val bookingData = previousEntry
         ?.savedStateHandle
@@ -57,23 +55,9 @@ fun BookingSummaryScreen(
     val selectedDate = bookingData?.get("selectedDate") as? String ?: ""
     val selectedTime = bookingData?.get("selectedTime") as? String ?: ""
     val selectedRoom = bookingData?.get("selectedRoom") as? String ?: ""
-    val price = bookingData?.get("price") as? Double ?: 0.0
+    val price = bookingData?.get("price") as? Int ?: 0
     val doctorId = bookingData?.get("doctorId") as? Int ?: -1
     val doctorName = bookingData?.get("doctorName") as? String ?: ""
-
-    // Log để debug
-    Log.d("BookingSummaryScreen", "=== DỮ LIỆU NHẬN ĐƯỢC ===")
-    Log.d("BookingSummaryScreen", "scheduleDetailId: $scheduleDetailId")
-    Log.d("BookingSummaryScreen", "departmentId: $departmentId")
-    Log.d("BookingSummaryScreen", "departmentName: $departmentName")
-    Log.d("BookingSummaryScreen", "selectedDate: $selectedDate")
-    Log.d("BookingSummaryScreen", "selectedTime: $selectedTime")
-    Log.d("BookingSummaryScreen", "selectedRoom: $selectedRoom")
-    Log.d("BookingSummaryScreen", "price: $price")
-    Log.d("BookingSummaryScreen", "doctorId: $doctorId")
-    Log.d("BookingSummaryScreen", "doctorName: $doctorName")
-    Log.d("BookingSummaryScreen", "=== KẾT THÚC DỮ LIỆU NHẬN ===")
-
 
     Column(
         modifier = modifier
@@ -134,13 +118,13 @@ fun BookingSummaryScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
+                InfoRow("Bác sĩ", doctorName.uppercase(),highlight = true)
                 InfoRow("Khoa", departmentName.uppercase(),highlight = true)
                 InfoRow("Ngày khám", formatDateForAPI(selectedDate))
                 InfoRow("Giờ khám", selectedTime)
                 InfoRow("Phòng", selectedRoom)
                 InfoRow("Giá", NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
                     .format(price).replace("VND", "₫"))
-                InfoRow("Bác sĩ", doctorName)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))

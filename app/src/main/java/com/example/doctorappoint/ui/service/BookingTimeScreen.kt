@@ -1,6 +1,5 @@
 package com.example.doctorappoint.ui.service
 
-import ScheduleTimeSlot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,6 +42,7 @@ import com.example.doctorappoint.common.BackBtnAndTitle
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
 import com.example.doctorappoint.data.api.NetworkResponse
+import com.example.doctorappoint.model.ScheduleTimeSlot
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import java.time.LocalDate
 import java.time.LocalTime
@@ -124,28 +124,14 @@ fun BookingTimeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Lỗi: $errorMessage",
+                    text = errorMessage,
                     fontSize = 16.sp,
-                    color = Color.Red,
+                    color = Color.Gray,
                     fontWeight = FontWeight.SemiBold
                 )
             }
         }
 
-            doctors.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Không có lịch bác sĩ cho ngày này",
-                        fontSize = 16.sp,
-                        color = Color.Gray
-                    )
-                }
-            }
 
             else -> {
                 doctors.forEach { doctor ->
@@ -171,7 +157,7 @@ fun BookingTimeScreen(
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
                                 ?.set("doctor_id", selectedDocInfo.doctorId)
-                            navController.popBackStack()
+
                         }
                     )
                     Spacer(modifier = Modifier.height(16.dp))

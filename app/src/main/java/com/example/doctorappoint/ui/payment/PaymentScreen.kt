@@ -87,7 +87,7 @@ fun PaymentScreen(
     val scheduleDetailId = appointment?.get("scheduleDetailId") as? Int ?: -1
     val departmentName = appointment?.get("departmentName") as? String ?: ""
     val selectedTime = appointment?.get("selectedTime") as? String ?: ""
-    val price = appointment?.get("price") as? Double ?: 0.0
+    val price = appointment?.get("price") as? Int ?: 0
     val formattedPrice = NumberFormat
         .getCurrencyInstance(Locale("vi", "VN"))
         .format(price)
@@ -460,7 +460,7 @@ fun PaymentScreen(
                         Button(
                             onClick = {
                                 showCancelDialog = false
-                               navController.navigate("selectDepartment")
+                               navController.popBackStack()
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
                         ) {

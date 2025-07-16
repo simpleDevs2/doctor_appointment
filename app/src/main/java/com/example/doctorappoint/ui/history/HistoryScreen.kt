@@ -1,7 +1,6 @@
 // HistoryScreen.kt
 package com.example.doctorappoint.ui.history
 
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,7 +47,6 @@ import com.example.doctorappoint.common.formatDateForAPI
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.model.UserHistory
 import com.example.doctorappoint.ui.theme.PrimaryColor
-import com.google.gson.Gson
 
 @Composable
 fun HistoryScreen(
@@ -190,6 +188,7 @@ fun HistoryItemCard(item: UserHistory,navController: NavHostController) {
                     "appointment_time" to item.appointment_time,
                     "department" to item.department,
                     "doctor" to item.doctor,
+                    "doctor_id" to item.doctorId,
                     "payment_amount" to item.payment_amount,
                     "payment_status" to item.payment_status,
                     "payment_reference" to item.payment_reference,
@@ -197,14 +196,8 @@ fun HistoryItemCard(item: UserHistory,navController: NavHostController) {
                     "schedule_detail_id" to item.schedule_detail_id,
                     "status" to item.status
                 )
-                val historyJson = Gson().toJson(historyDataMap)
-                navController.navigate(
-                    "history_detail/?historyData=${
-                        Uri.encode(
-                            historyJson
-                        )
-                    }"
-                )
+                navController.currentBackStackEntry?.savedStateHandle?.set("historyData", historyDataMap)
+                navController.navigate("history_detail")
 
             }
     ) {

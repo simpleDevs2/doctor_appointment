@@ -24,6 +24,7 @@ import com.example.doctorappoint.navigation.WelcomeScreen
 import com.example.doctorappoint.ui.account.login.LoginScreen
 import com.example.doctorappoint.ui.account.profile.PersonalInfoScreen
 import com.example.doctorappoint.ui.account.register.RegisterScreen
+import com.example.doctorappoint.ui.history.DoctorDailyScreen
 import com.example.doctorappoint.ui.history.HistoryDetailScreen
 import com.example.doctorappoint.ui.home.MainScreen
 import com.example.doctorappoint.ui.payment.PaymentScreen
@@ -187,7 +188,7 @@ fun MyApp() {
                 BookingTimeScreen(navController = navController, departmentId = departmentId, date = date)
             }
 
-            composable("Booking_summary") {
+            composable("booking_summary") {
                 BookingSummaryScreen(
                     navController = navController,
                 )
@@ -216,16 +217,19 @@ fun MyApp() {
                     }
                 )
             }
+            composable("history_detail") {
+                HistoryDetailScreen(navController = navController)
+            }
             composable(
-                route = "history_detail/?historyData={historyData}",
+                route = "doctor_daily_screen/{doctorId}",
                 arguments = listOf(
-                    navArgument("historyData") { type = NavType.StringType; nullable = true }
+                    navArgument("doctorId") { type = NavType.IntType }
                 )
-            ) { backstackEntry->
-                val historyDataJson = backstackEntry.arguments?.getString("historyData")
-                HistoryDetailScreen(
+            ){backstackEntry->
+                val doctorId = backstackEntry.arguments?.getInt("doctorId")
+                DoctorDailyScreen(
                     navController = navController,
-                    historyDataJson = historyDataJson
+                    doctorId = doctorId ?: -1
                 )
             }
         }

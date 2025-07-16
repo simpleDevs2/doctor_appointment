@@ -176,7 +176,7 @@ fun BookingScreen(
                 )
 
                 navController.currentBackStackEntry?.savedStateHandle?.set("bookingData", bookingData)
-                navController.navigate("Booking_summary" )
+                navController.navigate("booking_summary" )
             },
             modifier = Modifier.padding(bottom = 24.dp),
             enabled = isDepartmentSelected && isDateSelected && isTimeSelected

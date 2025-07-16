@@ -12,10 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PermIdentity
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,24 +30,23 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.common.BackBtnAndTitle
 import com.example.doctorappoint.common.LoginManager
+import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.formatDateForAPI
 import com.example.doctorappoint.ui.theme.PrimaryColor
-import com.google.gson.Gson
 
 @Composable
 fun HistoryDetailScreen(
     navController: NavHostController,
-    historyDataJson : String?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val user = LoginManager.getUser(context)
 
-    val historyData = historyDataJson?.let {
-        Gson().fromJson(it, Map::class.java) as Map<*, *>
-    }
-
+   val previousEntry = navController.previousBackStackEntry
+    val historyData = previousEntry
+        ?.savedStateHandle
+        ?.get<Map<String,Any>>("historyData")
 
     Column(
         modifier = modifier
@@ -76,29 +76,19 @@ fun HistoryDetailScreen(
                     Text(
                         text = "Thông tin bác sĩ",
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.W600
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(8.dp))
                 historyData?.let {data->
                     InfoRow("Họ tên", data["doctor"].toString().uppercase(),highlight = true)
-//                    InfoRow("Giới tính", it.gender)
-//                    InfoRow("Điện thoại", it.phone)
-//                    InfoRow("Địa chỉ", it.address)
+
                 }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Thông tin đặt lịch
-        Text(
-            text = "Thông tin lịch khám",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
 
         Card(
             shape = RoundedCornerShape(8.dp),
@@ -106,23 +96,51 @@ fun HistoryDetailScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                historyData?.let { data ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Color.Black
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Thông tin đặt khám ",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.W600
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+                historyData?.let {data->
                     InfoRow("Khoa", data["department"].toString().uppercase(), highlight = true)
                     InfoRow("Phòng", data["room"].toString())
                     InfoRow("Ngày khám", formatDateForAPI(data["appointment_date"].toString()))
                     InfoRow("Giờ khám", data["appointment_time"].toString())
-
-
-//                    InfoRow(
-//                        "Giá", NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
-//                            .format(price).replace("VND", "₫")
-//                    )
                 }
             }
         }
 
+        Spacer(modifier = Modifier.weight(1f))
+        val doctorId : Int = 11
+        PrimaryActionButton(
+            "Đặt lại",
+            onClick = {
+                navController.navigate("doctor_daily_screen/$doctorId"){
+                    popUpTo("doctor_daily_screen/{doctorId}") {
+                        inclusive = true
+                    }
+                    launchSingleTop = true
+                }
+
+            }
+
+        )
+        Spacer(modifier = Modifier.padding(bottom = 24.dp))
     }
 }
+
+
 
 @Composable
 fun InfoRow(label: String, value: String, highlight: Boolean = false) {

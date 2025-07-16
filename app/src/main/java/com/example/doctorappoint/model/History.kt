@@ -11,6 +11,7 @@ data class UserHistory(
     val appointment_time: String,
     val department: String,
     val doctor: String,
+    val doctorId: Int,
     val payment_amount: String,
     val payment_reference: String,
     val payment_status: String,

@@ -1,7 +1,23 @@
-import com.example.doctorappoint.model.Department
-import com.example.doctorappoint.model.Room
+package com.example.doctorappoint.model
 
 data class ScheduleResponse(
+    val message: String?,
+    val status: Boolean,
+    val data: List<List<ScheduleData>>
+)
+
+data class DoctorDailyScheduleResponse(
+    val status: Boolean,
+    val message: String?,
+    val data: DoctorDailySchedule?
+)
+
+data class DoctorDailySchedule(
+    val doctor: DoctorInfo,
+    val schedules : List<DailyScheduleDetail>
+)
+
+data class ScheduleData(
     val doctors: List<Doctor>,
     val room: Room,
     val shift: String,
@@ -10,6 +26,23 @@ data class ScheduleResponse(
     val department_id: Int,
     val department_name: String,
     val price: Int
+)
+
+data class DoctorInfo(
+    val id: Int,
+    val name: String,
+    val image: String?,
+    val degree: String,
+    val department: String,
+    val price: Int
+)
+
+data class DailyScheduleDetail(
+    val schedule_detail_id: Int,
+    val working_date: String,
+    val shift: String,
+    val room: String,
+    val slots: List<ScheduleTimeSlot>
 )
 
 data class Doctor(
