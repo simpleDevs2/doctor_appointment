@@ -3,32 +3,57 @@ package com.example.doctorappoint.ui.service
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.doctorappoint.component.BackBtnAndTitle
-import com.example.doctorappoint.component.SpacerHeight
+import androidx.navigation.NavHostController
+import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.ui.theme.PrimaryColor
+import com.example.doctorappoint.ui.theme.SecondaryColor
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.TextStyle
-import java.util.*
+import java.util.Locale
 
 
 @Composable
-fun AppointmentDatePicker(modifier: Modifier = Modifier) {
+fun BookingDateScreen(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
     val today = LocalDate.now()
     val currentSystemMonth = YearMonth.from(today)
 
@@ -42,13 +67,13 @@ fun AppointmentDatePicker(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         BackBtnAndTitle(
             modifier,
             title,
             onBackClick = {
-                // navController.popBackStack()
+                 navController.popBackStack()
             }
         )
         SpacerHeight(18.dp)
@@ -59,16 +84,17 @@ fun AppointmentDatePicker(modifier: Modifier = Modifier) {
             onNextMonth = { displayedMonth = displayedMonth.plusMonths(1) }
         )
         Spacer(modifier = Modifier.height(16.dp))
+
+
         CalendarGrid(
             yearMonth = displayedMonth,
             today = today,
             selectedDates = selectedDates,
             onDateSelected = { date ->
-                selectedDates = if (selectedDates.contains(date)) {
-                    selectedDates - date
-                } else {
-                    selectedDates + date
-                }
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.set("selected_date", date.toString())
+                navController.popBackStack()
             }
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -134,7 +160,7 @@ fun CalendarGrid(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Gray
+                    color = PrimaryColor
                 )
             }
         }
@@ -170,29 +196,34 @@ fun CalendarGrid(
 @Composable
 fun RowScope.DayCell(
     date: LocalDate,
-    today: LocalDate, // <- Nhận today
+    today: LocalDate,
     isSelected: Boolean,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val isPastDate = date.isBefore(today)
     val isToday = date.isEqual(today)
+    val isSunday = date.dayOfWeek.value == 7
 
-    // *** BẮT ĐẦU THAY ĐỔI LOGIC TẠI ĐÂY ***
+    val cutoffTime = LocalTime.of(14, 30)
+    val isPastTodayCutoff = isToday && LocalTime.now().isAfter(cutoffTime)
+
     val cellColor = when {
-        isSelected -> Color(0xFF26C6DA) // Màu đã chọn
-        isPastDate -> Color.LightGray // Màu ngày quá khứ, như trong LegendItem
-        else -> Color(0xFFF0F0F0)     // Màu nền mặc định cho ngày có thể chọn
+        isSelected -> Color(0xFF26C6DA)
+        isToday && isPastTodayCutoff -> Color.LightGray
+        isToday -> Color.White
+        isPastDate || isSunday -> Color.LightGray
+        else -> SecondaryColor
     }
 
     val textColor = when {
         isSelected -> Color.White
-        isPastDate -> Color.Gray // Màu chữ cho ngày quá khứ để dễ đọc
-        else -> Color.Black
+        isPastDate || isSunday || isPastTodayCutoff -> Color.Gray
+        isToday ->Color.Gray
+        else -> Color.White
     }
-    // *** KẾT THÚC THAY ĐỔI LOGIC ***
 
-    val borderColor = if (isToday && !isSelected) Color(0xFF26C6DA) else Color.Transparent
-
+    val borderColor = if (isToday && !isSelected && !isPastTodayCutoff) Color(0xFF26C6DA) else Color.Transparent
+    val isClickable = !isPastDate && !isSunday && !isPastTodayCutoff
     Box(
         modifier = Modifier
             .weight(1f)
@@ -201,20 +232,20 @@ fun RowScope.DayCell(
             .clip(RoundedCornerShape(8.dp))
             .background(cellColor)
             .border(1.dp, borderColor, RoundedCornerShape(8.dp))
-            .clickable(enabled = !isPastDate) { onDateSelected(date) }, // Vô hiệu hóa click ngày quá khứ
+            .clickable(enabled = isClickable) { onDateSelected(date) },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = date.dayOfMonth.toString(),
                 color = textColor,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Bold,
                 fontSize = 14.sp
             )
             if (isToday) {
                 Text(
                     text = "Hôm nay",
-                    color = if (isSelected) Color.White else Color(0xFF26C6DA),
+                    color = Color.Gray ,
                     fontSize = 8.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -230,8 +261,7 @@ fun CalendarLegend() {
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        LegendItem(color = Color(0xFF26C6DA), text = "Ngày đã chọn")
-        LegendItem(color = Color(0xFFF0F0F0), text = "Ngày có thể đăng ký")
+        LegendItem(color = SecondaryColor, text = "Ngày có thể đăng ký")
         LegendItem(color = Color.LightGray, text = "Ngày ngoài vùng đăng ký khám")
     }
 }

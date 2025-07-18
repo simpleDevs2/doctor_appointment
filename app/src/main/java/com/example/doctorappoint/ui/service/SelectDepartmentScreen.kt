@@ -4,23 +4,31 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,37 +36,50 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
-import com.example.doctorappoint.component.BackBtnAndTitle
-import com.example.doctorappoint.component.SearchBar
-import com.example.doctorappoint.component.SpacerHeight
-import com.example.doctorappoint.component.SpacerWidth
+import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.LoginManager
+import com.example.doctorappoint.common.SearchBar
+import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.common.removeVietnameseAccents
+import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.model.Department
-import com.example.doctorappoint.model.departments
+import com.example.doctorappoint.model.User
+import com.example.doctorappoint.ui.service.DepartmentViewModel
+import com.example.doctorappoint.ui.theme.PrimaryColor
+import java.text.NumberFormat
+import java.util.Locale
 
 @Composable
-
 fun SelectDepartmentScreen(
     navController: NavHostController,
-    modifier: Modifier = Modifier){
-    var searchString by remember{ mutableStateOf("") }
+    modifier: Modifier = Modifier,
+) {
+    var searchString by remember { mutableStateOf("") }
     val title = "Chọn chuyên khoa"
+    val departmentViewModel : DepartmentViewModel = viewModel()
+    val departmentsState by departmentViewModel.departments.collectAsState()
+    val context = LocalContext.current
+    var showProfileUpdateDialog by remember { mutableStateOf(false) }
+
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
             .padding(horizontal = 16.dp, vertical = 24.dp)
-
-
-
-    ){
+    ) {
         BackBtnAndTitle(
             modifier,
             title,
@@ -69,24 +90,161 @@ fun SelectDepartmentScreen(
         SpacerHeight(8.dp)
         SearchBar(
             modifier = Modifier.fillMaxWidth(),
+            placeholder = "Tìm kiếm chuyên khoa",
             searchString = searchString,
             onSearchStringChange = { searchString = it }
         )
         SpacerHeight(24.dp)
-        LazyColumn(
-            modifier = modifier
-                .fillMaxSize()
-                .background(Color.White),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(departments) { dp ->
-                DepartmentCard(department = dp, onClick = {
 
-                })
+        when (departmentsState) {
+            is NetworkResponse.Loading -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(color = PrimaryColor)
+                    SpacerHeight(16.dp)
+                    Text(
+                        text = "Đang tải danh sách chuyên khoa...",
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            is NetworkResponse.Success -> {
+                val departments = (departmentsState as NetworkResponse.Success<List<Department>>).data
+                val normalizedQuery = searchString.removeVietnameseAccents().lowercase()
+
+                val filteredDepartments = if (searchString.isNotEmpty()) {
+                    departments.filter {
+                        it.name.removeVietnameseAccents().lowercase().contains(normalizedQuery)
+                    }
+                } else {
+                    departments
+                }
+
+                LazyColumn(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .background(Color.White),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filteredDepartments) { department ->
+                        DepartmentCard(
+                            department = department,
+                            onClick = {
+                                val currentUser = LoginManager.getUser(context)
+                                if (isUserProfileComplete(currentUser)) {
+                                    navController.navigate("booking/${department.id}/${department.price}")
+                                } else {
+                                    showProfileUpdateDialog = true
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
+            
+            is NetworkResponse.Error -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Có lỗi xảy ra khi tải danh sách chuyên khoa",
+                        color = Color.Red,
+                        textAlign = TextAlign.Center
+                    )
+                    SpacerHeight(16.dp)
+                    Button(
+                        onClick = {departmentViewModel.refreshDepartments() },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF0066CC)
+                        )
+                    ) {
+                        Text("Thử lại")
+                    }
+                }
             }
         }
+        if (showProfileUpdateDialog) {
+            Dialog(onDismissRequest = { showProfileUpdateDialog = false }) {
+                Box(
+                    modifier = Modifier
+                        .width(300.dp)
+                        .height(200.dp)
+                        .background(Color.White, shape = RoundedCornerShape(16.dp))
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Cập nhật thông tin",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.Black,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Vui lòng cập nhật thông tin cá nhân trước khi đặt lịch",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Black
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Button(
+                                onClick = {
+                                    showProfileUpdateDialog = false
+                                },
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = Color.White
+                                )
+                            ) {
+                                Text("Hủy", color = Color.Gray)
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                            Button(
+                                onClick = {
+                                    navController.navigate("personalInfo")
+                                },
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryColor
+                                )
+                            ) {
+                                Text("Cập nhật", color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
+
 }
+private fun isUserProfileComplete(user: User?): Boolean {
+    if (user == null) return false
+
+    val hasName = user.name?.trim()?.length ?: 0 >= 2
+    val hasAddress = user.address?.trim()?.length ?: 0 >= 5
+    val hasGender = user.gender?.let {
+        it.equals("Nam", true) || it.equals("Nữ", true)
+                || it.equals("Male", true) || it.equals("Female", true)
+    } ?: false
+    val hasBirthdate = user.birthdate?.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) ?: false
+
+    return hasName && hasAddress && hasGender && hasBirthdate
+}
+
 
 @Composable
 fun DepartmentCard(
@@ -109,7 +267,7 @@ fun DepartmentCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.noti), // icon chữ i
+                    painter = painterResource(id = R.drawable.noti),
                     contentDescription = null,
                     tint = Color(0xFF0066CC),
                     modifier = Modifier.size(18.dp)
@@ -122,8 +280,14 @@ fun DepartmentCard(
                     color = Color(0xFF0066CC),
                     modifier = Modifier.weight(1f)
                 )
+                val priceValue = department.price.toInt()
+                val formattedPrice = NumberFormat
+                    .getCurrencyInstance(Locale("vi", "VN"))
+                    .format(priceValue)
+                    .replace("VND", "₫")
+
                 Text(
-                    text = department.price,
+                    text = formattedPrice,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )

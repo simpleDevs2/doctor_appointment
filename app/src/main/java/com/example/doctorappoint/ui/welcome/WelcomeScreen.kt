@@ -30,8 +30,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.doctorappoint.R
-import com.example.doctorappoint.component.SpacerHeight
-import com.example.doctorappoint.component.SpacerWidth
+import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.ui.theme.PrimaryColor
+import com.example.doctorappoint.ui.theme.SecondaryColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +56,7 @@ fun WelcomeScreen(
             modifier = Modifier.padding(24.dp)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_background), // Thay thế bằng icon của bạn
+                painter = painterResource(id = R.drawable.logo), // Thay thế bằng icon của bạn
                 contentDescription = "Heart Hands Icon",
                 modifier = Modifier.size(48.dp)
             )
@@ -64,12 +66,12 @@ fun WelcomeScreen(
                     text = "BỆNH VIỆN ĐẠI HỌC XYZ HCMC",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2C3E50) // Màu xanh đậm/xám
+                    color = Color(0xFF2C3E50)
                 )
                 Text(
                     text = "Thấu hiểu nỗi đau - Niềm tin của bạn",
                     fontSize = 14.sp,
-                    color = Color(0xFF6A9B9F) // Màu xanh teal
+                    color = Color(0xFF6A9B9F)
                 )
             }
         }
@@ -79,12 +81,12 @@ fun WelcomeScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.8f) // Điều chỉnh chiều rộng theo yêu cầu
-                    .aspectRatio(16f / 9f) // Giữ tỉ lệ khung hình
-                    .background(Color.LightGray, RoundedCornerShape(8.dp)) // Nền tạm thời
+                    .fillMaxWidth(0.9f)
+                    .aspectRatio(16f / 9f)
+                    .background(Color.LightGray, RoundedCornerShape(8.dp))
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_background), // Thay thế bằng ảnh của bạn
+                    painter = painterResource(id = R.drawable.banner_splash),
                     contentDescription = "Cute dog",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -126,7 +128,7 @@ fun WelcomeScreen(
                     .weight(1f)
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2D8C9D)) // Màu xanh teal
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
             ) {
                 Text(
                     text = "Đăng nhập",
@@ -142,7 +144,7 @@ fun WelcomeScreen(
                     .weight(1f)
                     .height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF86D0B4)) // Màu xanh lá nhạt
+                colors = ButtonDefaults.buttonColors(containerColor = SecondaryColor)
             ) {
                 Text(
                     text = "Đăng ký",

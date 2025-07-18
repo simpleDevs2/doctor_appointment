@@ -10,5 +10,7 @@ data class Banner(
 
 val bannerList = listOf(
     Banner(1, R.drawable.banner),
-    Banner(2, R.drawable.banner),
+    Banner(2, R.drawable.banner2),
+    Banner(3, R.drawable.banner3),
+
 )

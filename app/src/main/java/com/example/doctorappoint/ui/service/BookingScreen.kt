@@ -1,91 +1,96 @@
 package com.example.doctorappoint.ui.theme.service
 
 
-import android.os.Build
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Notifications
-
+import androidx.compose.material.icons.filled.PermIdentity
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-
-import androidx.compose.ui.res.painterResource
-
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.doctorappoint.component.BackBtnAndTitle
-import com.example.doctorappoint.component.PrimaryActionButton
-import com.example.doctorappoint.component.SpacerHeight
-import com.example.doctorappoint.component.SpacerWidth
-import com.example.doctorappoint.model.Doctor
-import com.example.doctorappoint.model.dummyDoctorList
-import com.example.doctorappoint.ui.theme.BorderColor
-import com.example.doctorappoint.ui.theme.PrimaryColor
-import com.example.doctorappoint.ui.theme.SecondaryColor
-import com.example.doctorappoint.ui.theme.SelectedDateColor
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.PrimaryActionButton
+import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.common.formatDateForAPI
+import com.example.doctorappoint.data.api.NetworkResponse
+import com.example.doctorappoint.model.Department
+import com.example.doctorappoint.ui.service.BookingViewModel
+import com.example.doctorappoint.ui.service.DepartmentViewModel
 
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun BookingScreen(modifier: Modifier = Modifier){
-    val title = "Đặt lịch"
-    val doctor =  dummyDoctorList.first()
+fun BookingScreen(
+    navController: NavHostController,
+    modifier: Modifier = Modifier,
+    departmentId: Int,
+    price: Int
+){
+    val departmentViewModel: DepartmentViewModel = viewModel()
+    val departmentsState by departmentViewModel.departments.collectAsState()
+    val bookingViewModel: BookingViewModel = viewModel()
 
-    var selectedDate by remember { mutableStateOf("") }
-    var selectedTime by remember { mutableStateOf("") }
+    val departmentName = when (departmentsState) {
+        is NetworkResponse.Success -> {
+            val departments = (departmentsState as NetworkResponse.Success<List<Department>>).data
+            departments.find { it.id == departmentId }?.name ?: ""
+        }
+        else -> ""
+    }
 
-    var showTimeSheet by remember { mutableStateOf(false) }
-    var showDateSheet by remember { mutableStateOf(false) }
+    fun formatDate(dateString: String?): String {
+        return if (dateString.isNullOrBlank()) {
+            "Chọn ngày khám"
+        } else {
+            try {
+                val localDate = java.time.LocalDate.parse(dateString)
+                localDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            } catch (e: Exception) {
+                "Chọn ngày khám"
+            }
+        }
+    }
 
-    var pickedDate by remember { mutableStateOf(LocalDate.now()) }
-    var pickedTime by remember { mutableStateOf(LocalTime.NOON) }
+    val navBackStackEntry = navController.currentBackStackEntryAsState().value
+
+    val scheduleDoctorId = navBackStackEntry?.savedStateHandle?.getLiveData<Int>("schedule_detail_id")
+    val selectedDate = navBackStackEntry?.savedStateHandle?.getLiveData<String>("selected_date")
+    val selectedTime = navBackStackEntry?.savedStateHandle?.getLiveData<String>("selected_time")
+    val selectedDoctor = navBackStackEntry?.savedStateHandle?.getLiveData<String>("selected_doctor")
+    val room = navBackStackEntry?.savedStateHandle?.getLiveData<String>("room")
+    val doctorId = navBackStackEntry?.savedStateHandle?.getLiveData<Int>("doctor_id")
+
+    val isDepartmentSelected = departmentName.isNotBlank()
+    val isDateSelected = !selectedDate?.value.isNullOrBlank()
+            && formatDate(selectedDate?.value.toString()) != "Chọn ngày khám"
+    val isTimeSelected = selectedTime?.value != null
 
 
 
@@ -93,125 +98,91 @@ fun BookingScreen(modifier: Modifier = Modifier){
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         BackBtnAndTitle(
-            modifier,
-            title,
-            onBackClick = {
-               // navController.popBackStack()
-            }
+            title = "Đặt lịch",
+            onBackClick = { navController.popBackStack() }
         )
         SpacerHeight(24.dp)
-        DoctorDetailCard(doctor)
-        SpacerHeight(32.dp)
+
         DateTimeSelectionRow(
-            title = "Chuyên khoa",
-            selectedValue = selectedTime,
-            onRowClick = {  }
+            title = "Khoa:",
+            selectedValue = departmentName,
+            onRowClick = {
+                navController.navigate("selectDepartment")
+            },
+            icon = Icons.Default.HealthAndSafety
+        )
+        SpacerHeight(32.dp)
+
+        DateTimeSelectionRow(
+            title = "Ngày khám:",
+            selectedValue = formatDate(selectedDate?.value.toString()),
+            onRowClick = {
+                if (isDepartmentSelected) {
+                    navController.navigate("booking_date")
+                }
+            },
+            icon = Icons.Default.CalendarToday
+        )
+        SpacerHeight(32.dp)
+
+        DateTimeSelectionRow(
+            title = "Giờ khám:",
+            selectedValue = selectedTime?.value.orEmpty(),
+            onRowClick = {
+                if (isDepartmentSelected && isDateSelected) {
+                    val dateForApi = formatDateForAPI(selectedDate.value ?: "")
+                    navController.navigate("booking_time_screen/$departmentId/$dateForApi")
+                }
+            },
+            icon = Icons.Default.AccessTime
         )
         SpacerHeight(32.dp)
         DateTimeSelectionRow(
-            title = "Ngày khám",
-            selectedValue = selectedDate,
-            onRowClick = { showDateSheet = true }
-        )
-        SpacerHeight(32.dp)
-        DateTimeSelectionRow(
-            title = "Giờ khám",
-            selectedValue = selectedTime,
-            onRowClick = {  showTimeSheet = true }
+            title = "Bác sĩ",
+            selectedValue =if (selectedDoctor?.value!= null){
+                selectedDoctor.value.toString()
+            }else{
+                "Chọn bác sĩ"
+            },
+            onRowClick = {
+
+            },
+            icon = Icons.Default.PermIdentity
         )
         Spacer(modifier = Modifier.weight(1f))
         PrimaryActionButton(
             text = "TIẾP TỤC",
-            onClick = { },
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-    }
-    if (showTimeSheet) {
-        TimePickerBottomSheet(
-            onDismiss = { showTimeSheet = false },
-            onTimeSelected = {
-                selectedTime = it
-                showTimeSheet = false
-            }
-        )
-    }
-    if (showDateSheet) {
-        DatePickerBottomSheet(
-            selectedDate =  selectedDate,
-            onDismiss = { showDateSheet = false },
-            onDateSelected = { selected ->
-                selectedDate = selected.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-            }
-        )
-    }
-}
+            onClick = {
+                val scheduleId = scheduleDoctorId?.value ?: -1
+                val selDate = selectedDate?.value.orEmpty()
+                val selTime = selectedTime?.value.orEmpty()
+                val selDoctor = selectedDoctor?.value.orEmpty()
+                val selRoom = room?.value.orEmpty()
+                val selDoctorId = doctorId?.value ?: -1
 
-@Composable
-fun DoctorDetailCard(doctor: Doctor, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = doctor.imageResId),
-                contentDescription = "Doctor ${doctor.name}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .width(100.dp)
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(12.dp))
-            )
-            SpacerWidth(16.dp)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(top = 12.dp, bottom = 12.dp, end = 8.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                Text(
-                    text = doctor.name,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    maxLines = 1
+                val bookingData = mapOf(
+                    "scheduleDetailId" to scheduleId,
+                    "departmentId" to departmentId,
+                    "departmentName" to departmentName,
+                    "selectedDate" to selDate,
+                    "selectedTime" to selTime,
+                    "selectedRoom" to selRoom,
+                    "price" to price,
+                    "doctorId" to selDoctorId,
+                    "doctorName" to selDoctor
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ){
-                    Text(
-                        text = " Giá khám: ",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = doctor.price,
-                        fontSize = 16.sp,
-                        color = SecondaryColor,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
 
-            }
-        }
+                navController.currentBackStackEntry?.savedStateHandle?.set("bookingData", bookingData)
+                navController.navigate("booking_summary" )
+            },
+            modifier = Modifier.padding(bottom = 24.dp),
+            enabled = isDepartmentSelected && isDateSelected && isTimeSelected
+        )
     }
+
 }
 
 @Composable
@@ -219,6 +190,7 @@ fun DateTimeSelectionRow(
     title: String,
     selectedValue: String,
     onRowClick: () -> Unit,
+    icon: ImageVector,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -247,19 +219,19 @@ fun DateTimeSelectionRow(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Notifications, // Biểu tượng chuông
+                        imageVector = icon,
                         contentDescription = "Icon",
                         tint = Color.Gray
                     )
                     SpacerWidth(12.dp)
                     Text(
-                        text = selectedValue.ifEmpty { "Chọn $title" }, // Hiển thị giá trị đã chọn hoặc placeholder
+                        text = selectedValue.ifEmpty { "Chọn $title" },
                         fontSize = 16.sp,
                         color = if (selectedValue.isEmpty()) Color.Gray else Color.Black
                     )
                 }
                 Icon(
-                    imageVector = Icons.Default.KeyboardArrowRight, // Biểu tượng mũi tên
+                    imageVector = Icons.Default.KeyboardArrowRight,
                     contentDescription = "Arrow",
                     tint = Color.Gray
                 )
@@ -268,205 +240,3 @@ fun DateTimeSelectionRow(
     }
 }
 
-@Composable
-fun TimeSlotButton(
-    timeRange: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) SelectedDateColor else Color.White)
-            .border(
-                width = 1.dp,
-                color = if (isSelected) SelectedDateColor else BorderColor,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) {
-        Text(
-            text = timeRange,
-            color = if (isSelected) Color.White else Color.Black,
-            fontSize = 14.sp
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TimePickerBottomSheet(
-    onDismiss: () -> Unit,
-    onTimeSelected: (String) -> Unit
-) {
-    val morningSlots = listOf("7h-8h", "8h-9h", "9h-10h", "10h-11h")
-    val afternoonSlots = listOf("13h-14h", "14h-15h", "15h-16h")
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(24.dp)
-                .fillMaxWidth()
-        ) {
-            Text("Chọn giờ khám", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-
-            SpacerHeight(16.dp)
-            Text("Ca sáng", fontWeight = FontWeight.SemiBold)
-            SpacerHeight(8.dp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                morningSlots.forEach {
-                    TimeSlotButton(timeRange = it, isSelected = false) {
-                        onTimeSelected(it)
-                    }
-                }
-            }
-
-            SpacerHeight(16.dp)
-            Text("Ca chiều", fontWeight = FontWeight.SemiBold)
-            SpacerHeight(8.dp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                afternoonSlots.forEach {
-                    TimeSlotButton(timeRange = it, isSelected = false) {
-                        onTimeSelected(it)
-                    }
-                }
-            }
-
-            SpacerHeight(16.dp)
-        }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun DatePickerBottomSheet(
-    selectedDate: String,
-    onDateSelected: (LocalDate) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var currentMonth by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
-    val today = LocalDate.now()
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Select Date",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Header: Month and Year + arrows
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowRight,
-                contentDescription = "Previous Month",
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable {
-                        currentMonth = currentMonth.minusMonths(1)
-                    }
-                    .rotate(180f),
-                tint = Color.Black
-            )
-            Text(
-                text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowRight,
-                contentDescription = "Next Month",
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable {
-                        currentMonth = currentMonth.plusMonths(1)
-                    },
-                tint = Color.Black
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Day of Week header (Sunday start)
-        val dayLabels = listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
-        Row(modifier = Modifier.fillMaxWidth()) {
-            dayLabels.forEach { label ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = label, fontWeight = FontWeight.SemiBold, color = Color.Gray)
-                }
-            }
-        }
-
-        // Days Grid
-        val daysInMonth = currentMonth.lengthOfMonth()
-        val firstDayOfWeek = currentMonth.dayOfWeek.value % 7  // Sunday = 0
-
-        var dayCounter = 1
-        for (week in 0..5) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                for (dayOfWeek in 0..6) {
-                    if (week == 0 && dayOfWeek < firstDayOfWeek || dayCounter > daysInMonth) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                        ) { }
-                    } else {
-                        val date = currentMonth.withDayOfMonth(dayCounter)
-                        val isToday = date == today
-                        val isPast = date.isBefore(today)
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(
-                                    when {
-                                        isPast -> Color.LightGray
-                                        isToday -> PrimaryColor
-                                        else -> Color.Transparent
-                                    }
-                                )
-                                .clickable(enabled = !isPast) {
-                                    onDateSelected(date)
-                                    onDismiss()
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = dayCounter.toString(),
-                                color = when {
-                                    isPast -> Color.Gray
-                                    isToday -> Color.White
-                                    else -> Color.Black
-                                }
-                            )
-                        }
-                        dayCounter++
-                    }
-                }
-            }
-        }
-    }
-}

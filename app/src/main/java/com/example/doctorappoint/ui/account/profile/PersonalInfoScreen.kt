@@ -1,19 +1,21 @@
 package com.example.doctorappoint.ui.account.profile
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -29,6 +31,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,35 +42,93 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.doctorappoint.component.SpacerHeight
-import com.example.doctorappoint.component.SpacerWidth
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import com.example.doctorappoint.common.BackBtnAndTitle
+import com.example.doctorappoint.common.LoginManager
+import com.example.doctorappoint.common.SpacerHeight
+import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.data.api.NetworkResponse
+import com.example.doctorappoint.model.UpdateProfile
+import com.example.doctorappoint.model.User
 import kotlinx.datetime.LocalDate
 import network.chaintech.kmp_date_time_picker.ui.datepicker.WheelDatePickerView
 import network.chaintech.kmp_date_time_picker.utils.DateTimePickerView
 import network.chaintech.kmp_date_time_picker.utils.now
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PersonalInfoScreen(modifier: Modifier = Modifier) {
+fun PersonalInfoScreen(
+    modifier: Modifier = Modifier,
+    navController: NavHostController,
+    userState: MutableState<User?>,
+    onProfileUpdated: () -> Unit = {}
+) {
+
+    val context = LocalContext.current
+    val personalInfoViewModel: PersonalInfoViewModel = viewModel()
+    val updateProfileState by personalInfoViewModel.updateProfileState.collectAsState()
     Column(
         modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .background(Color.White)
-            .padding(16.dp)
+            .fillMaxSize()
+            .background(Color.White, shape = RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        ProfileHeader()
+        BackBtnAndTitle(
+            title = "Thông tin cá nhân",
+            onBackClick = { navController.popBackStack() }
+        )
+        ProfileHeader(userState.value)
         SpacerHeight(24.dp)
-        PersonalInfoForm()
+
+
+        val reloadKey = remember { mutableStateOf(0) }
+
+        LaunchedEffect(updateProfileState) {
+            if (updateProfileState is NetworkResponse.Success) {
+                reloadKey.value++
+            }
+        }
+
+        PersonalInfoForm(
+            key = reloadKey.value,
+            user = userState.value,
+            onSave = { updateProfile ->
+                val token = LoginManager.getToken(context)
+                if(!token.isNullOrEmpty()){
+                    personalInfoViewModel.updateProfile(token, updateProfile)
+                }
+            }
+        )
+    }
+
+
+    LaunchedEffect(updateProfileState) {
+        when (val state = updateProfileState) {
+            is NetworkResponse.Success -> {
+
+                LoginManager.saveLoginData(context, state.data.data, state.data.data.api_token)
+                userState.value = state.data.data
+                Toast.makeText(context, "Cập nhật thành công!", Toast.LENGTH_SHORT).show()
+                onProfileUpdated()
+            }
+            is NetworkResponse.Error -> {
+
+            }
+            else -> {}
+        }
     }
 }
 
 @Composable
-fun ProfileHeader() {
+fun ProfileHeader(user: User?) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -74,7 +137,7 @@ fun ProfileHeader() {
             modifier = Modifier
                 .size(64.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF007BFF)), // Example color
+                .background(Color(0xFF007BFF)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -84,9 +147,9 @@ fun ProfileHeader() {
                 modifier = Modifier.size(40.dp)
             )
         }
-        SpacerWidth(16.dp) // Make sure SpacerWidth is defined or imported
+        SpacerWidth(16.dp)
         Text(
-            text = "094****574", // This could also come from user data state
+            text = user?.name ?: "User",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
@@ -94,17 +157,57 @@ fun ProfileHeader() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // For ExposedDropdownMenuBox
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PersonalInfoForm() {
+fun PersonalInfoForm(
+    key: Int = 0,
+    user: User?,
+    onSave: (UpdateProfile) -> Unit
+) {
+    val fullName = user?.name ?: ""
+    val nameParts = fullName.split(" ")
+    val firstName = nameParts.lastOrNull() ?: ""
+    val lastNameAndMiddleName = nameParts.dropLast(1).joinToString(" ")
+    val context = LocalContext.current
 
-    var lastNameAndMiddleName by remember { mutableStateOf("") }
-    var firstName by remember { mutableStateOf("") }
+
+    val originalLastNameAndMiddleName = remember { lastNameAndMiddleName }
+    val originalFirstName = remember { firstName }
+    val originalGender = remember { user?.gender ?: "" }
+    val originalAddress = remember { user?.address ?: "" }
+    val originalBirthdate = remember { user?.birthdate ?: "" }
+
+    var lastNameAndMiddleNameState by remember { mutableStateOf(lastNameAndMiddleName) }
+    var firstNameState by remember { mutableStateOf(firstName) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
-    var selectedGender by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
+    var selectedGender by remember { mutableStateOf(user?.gender ?: "") }
+    var address by remember { mutableStateOf(user?.address ?: "") }
 
-    val phoneNumber = "094****574"
+    // Error states for validation
+    var lastNameError by remember { mutableStateOf("") }
+    var firstNameError by remember { mutableStateOf("") }
+    var addressError by remember { mutableStateOf("") }
+    var birthdateError by remember { mutableStateOf("") }
+    var genderError by remember { mutableStateOf("") }
+
+
+    LaunchedEffect(user?.birthdate) {
+        user?.birthdate?.let { birthdateStr ->
+            try {
+
+                val parts = birthdateStr.split("-")
+                if (parts.size == 3) {
+                    selectedDate = LocalDate(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+                }
+            } catch (e: Exception) {
+                Log.e("PersonalInfoScreen", "Error parsing birthdate: $birthdateStr", e)
+            }
+        }
+    }
+
+    val phoneNumber = user?.phone ?: ""
+    val focusManager = LocalFocusManager.current
+
 
     Column(
         modifier = Modifier
@@ -114,34 +217,78 @@ fun PersonalInfoForm() {
         // Phone Number
         LabeledInputField(
             label = "Số điện thoại",
-            value = phoneNumber, // Display value directly
-            onValueChange = {},    // No change if locked
-            placeholder = "094****574",
+            value = phoneNumber,
+            onValueChange = {},
+            placeholder = phoneNumber,
             isLocked = true
         )
 
         // Last Name and Middle Name
         LabeledInputField(
             label = "Họ và tên lót",
-            value = lastNameAndMiddleName,
-            onValueChange = { lastNameAndMiddleName = it },
+            value = lastNameAndMiddleNameState,
+            onValueChange = {
+                lastNameAndMiddleNameState = it
+                // Clear error when user starts typing
+                if (lastNameError.isNotEmpty()) {
+                    lastNameError = ""
+                }
+                // Validate name format
+                if (it.isNotEmpty() && it.any { char -> char.isDigit() }) {
+                    lastNameError = "Họ và tên lót không được chứa số"
+                }
+            },
             placeholder = "Họ và tên đệm...",
-            isLocked = false
+            isLocked = false,
+            isError = lastNameError.isNotEmpty(),
+            onImeActionDone = { focusManager.clearFocus() }
         )
+
+        // Display last name error
+        if (lastNameError.isNotEmpty()) {
+            Text(
+                text = lastNameError,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
 
         // First Name
         LabeledInputField(
             label = "Tên",
-            value = firstName,
-            onValueChange = { firstName = it },
+            value = firstNameState,
+            onValueChange = {
+                firstNameState = it
+                // Clear error when user starts typing
+                if (firstNameError.isNotEmpty()) {
+                    firstNameError = ""
+                }
+                // Validate name format
+                if (it.isNotEmpty() && it.any { char -> char.isDigit() }) {
+                    firstNameError = "Tên không được chứa số"
+                }
+            },
             placeholder = "Tên...",
-            isLocked = false
+            isLocked = false,
+            isError = firstNameError.isNotEmpty(),
+            onImeActionDone = { focusManager.clearFocus() }
         )
+
+        // Display first name error
+        if (firstNameError.isNotEmpty()) {
+            Text(
+                text = firstNameError,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.Top // Align items to the top for consistent label alignment
+            verticalAlignment = Alignment.Top
         ) {
             // Date of Birth
             DatePickerField(
@@ -157,28 +304,88 @@ fun PersonalInfoForm() {
                 label = "Giới tính",
                 selectedGender = selectedGender,
                 onGenderSelected = { selectedGender = it },
-                options = listOf("Nam", "Nữ",),
+                options = listOf("Nam", "Nữ"),
                 modifier = Modifier.weight(1f)
             )
         }
 
         // Email
         LabeledInputField(
-            label = "Email",
-            value = email,
-            onValueChange = { email = it },
-            placeholder = "Email...",
-            isLocked = false
+            label = "Địa chỉ",
+            value = address,
+            onValueChange = { address = it },
+            placeholder = "Địa chỉ...",
+            isLocked = false,
+            onImeActionDone = { focusManager.clearFocus() }
         )
 
         SpacerHeight(16.dp)
+        fun hasChanges(): Boolean {
+            val currentFullName = "$lastNameAndMiddleNameState $firstNameState"
+            val originalFullName = "$originalLastNameAndMiddleName $originalFirstName"
+
+            val currentBirthdate = selectedDate?.let { "${it.year}-${it.monthNumber.toString().padStart(2, '0')}-${it.dayOfMonth.toString().padStart(2, '0')}" } ?: ""
+
+            return currentFullName != originalFullName ||
+                    selectedGender != originalGender ||
+                    address != originalAddress ||
+                    currentBirthdate != originalBirthdate
+        }
+
+        fun isValidName(name: String): Boolean{
+            val regex = Regex("^[\\p{L}\\s]+$")
+            return regex.matches(name)
+        }
 
         Button(
             onClick = {
-                // Handle save action with the states:
-                // lastNameAndMiddleName, firstName, selectedDate, selectedGender, email
-                // Example: Log them or send to a ViewModel
-                println("Saving Data: Name: $firstName $lastNameAndMiddleName, DOB: $selectedDate, Gender: $selectedGender, Email: $email")
+                // Validate fields
+                var allFieldsValid = true
+
+                if (lastNameAndMiddleNameState.isEmpty()) {
+                    lastNameError = "Họ và tên lót không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (firstNameState.isEmpty()) {
+                    firstNameError = "Tên không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (address.isEmpty()) {
+                    addressError = "Địa chỉ không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (selectedDate == null) {
+                    birthdateError = "Ngày sinh không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (selectedGender.isEmpty()) {
+                    genderError = "Giới tính không được để trống"
+                    allFieldsValid = false
+                }
+
+                if (!allFieldsValid) {
+                    Toast.makeText(context, "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
+                if (!hasChanges()) {
+                    Toast.makeText(context, "Không có thay đổi nào để lưu", Toast.LENGTH_SHORT).show()
+                    return@Button
+                }
+
+                val selectedDateString = selectedDate?.let { "${it.year}-${it.monthNumber.toString().padStart(2, '0')}-${it.dayOfMonth.toString().padStart(2, '0')}" } ?: ""
+                val updateProfile = UpdateProfile(
+                    address = address,
+                    birthdate = selectedDateString,
+                    gender = selectedGender,
+                    name = "$lastNameAndMiddleNameState $firstNameState",
+                    phone = phoneNumber
+                )
+                onSave(updateProfile)
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -194,7 +401,10 @@ fun LabeledInputField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     isLocked: Boolean = false,
-    modifier: Modifier = Modifier
+    isError: Boolean = false,
+    modifier: Modifier = Modifier,
+    imeAction: ImeAction = ImeAction.Done,
+    onImeActionDone: (() -> Unit)? = null
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -222,13 +432,23 @@ fun LabeledInputField(
             },
             singleLine = true,
             shape = RoundedCornerShape(8.dp),
+            isError = isError,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = imeAction
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    onImeActionDone?.invoke()
+                }
+            ),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF007BFF), // Example focus color
-                unfocusedBorderColor = Color.LightGray,
+                focusedBorderColor = if (isError) Color.Red else Color(0xFF007BFF),
+                unfocusedBorderColor = if (isError) Color.Red else Color.LightGray,
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
                 disabledBorderColor = Color.LightGray,
-                disabledTextColor = Color.Gray
+                disabledTextColor = Color.Gray,
+                errorBorderColor = Color.Red
             )
         )
     }
@@ -245,7 +465,6 @@ fun DatePickerField(
     var showDatePicker by remember { mutableStateOf(false) }
 
     val displayDate = selectedDate?.let {
-        // Ensure day and month are two digits
         val day = it.dayOfMonth.toString().padStart(2, '0')
         val month = it.monthNumber.toString().padStart(2, '0')
         "$day/$month/${it.year}"
@@ -259,75 +478,79 @@ fun DatePickerField(
             color = Color.Gray,
             modifier = Modifier.padding(bottom = 4.dp)
         )
-        OutlinedTextField(
-            value = displayDate,
-            onValueChange = { /* Not directly changed here */ },
+
+        Button(
+            onClick = {
+                Log.d("DatePickerField", "Date picker clicked, showing picker")
+                showDatePicker = true
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
-                    Log.e("test", "Clicked! Setting showDatePicker to true.")
-                    showDatePicker = true
-                },
-            readOnly = true,
-            placeholder = { Text(if (displayDate.isEmpty()) placeholder else "") },
-            trailingIcon = {
+                .height(56.dp),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = Color.White,
+                contentColor = Color.Black
+            ),
+            shape = RoundedCornerShape(8.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (displayDate.isNotEmpty()) displayDate else placeholder,
+                    color = if (displayDate.isNotEmpty()) Color.Black else Color.Gray
+                )
                 Icon(
                     imageVector = Icons.Default.CalendarMonth,
                     contentDescription = "Select Date",
                     tint = Color.Gray
                 )
+            }
+        }
+    }
+    
+    if (showDatePicker) {
+        WheelDatePickerView(
+            startDate = selectedDate ?: LocalDate.now(),
+            title = "Chọn ngày sinh",
+            doneLabel = "OK",
+            showDatePicker = showDatePicker,
+            height = 200.dp,
+            dateTimePickerView = DateTimePickerView.BOTTOM_SHEET_VIEW,
+            rowCount = 3,
+            titleStyle = TextStyle(
+                color = Color.Black,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            doneLabelStyle = TextStyle(
+                color = Color(0xFF007BFF),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            customMonthNames = listOf(
+                "Thg 1", "Thg 2", "Thg 3", "Thg 4",
+                "Thg 5", "Thg 6", "Thg 7", "Thg 8",
+                "Thg 9", "Thg 10", "Thg 11", "Thg 12"
+            ),
+            yearsRange = 1920..LocalDate.now().year,
+            onDoneClick = { date ->
+                Log.d("DatePickerField", "Date selected: $date")
+                onDateSelected(date)
+                showDatePicker = false
             },
-            singleLine = true,
-            shape = RoundedCornerShape(8.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF007BFF),
-                unfocusedBorderColor = Color.LightGray,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
-            )
+            onDismiss = {
+                Log.d("DatePickerField", "Date picker dismissed")
+                showDatePicker = false
+            }
         )
     }
-        if(showDatePicker){
-            WheelDatePickerView(
-                startDate = selectedDate ?: LocalDate.now(),
-                title = "Chọn ngày sinh",
-                doneLabel = "OK",
-                showDatePicker = showDatePicker,
-                height = 200.dp,
-                dateTimePickerView = DateTimePickerView.BOTTOM_SHEET_VIEW,
-                rowCount = 3,
-                titleStyle = TextStyle(
-                    color = Color.Black,
-                    fontSize = 20.sp, // Adjusted size
-                    fontWeight = FontWeight.Bold
-                ),
-                doneLabelStyle = TextStyle(
-                    color = Color(0xFF007BFF),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                customMonthNames = listOf(
-                    "Thg 1", "Thg 2", "Thg 3", "Thg 4",
-                    "Thg 5", "Thg 6", "Thg 7", "Thg 8",
-                    "Thg 9", "Thg 10", "Thg 11", "Thg 12"
-                ),
-                yearsRange = 1920..LocalDate.now().year,
-                onDoneClick = { date ->
-                    onDateSelected(date)
-                    showDatePicker = false
-                },
-                onDismiss = {
-                    showDatePicker = false
-                }
-            )
-        }
-
-
-
-
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // For ExposedDropdownMenuBox
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GenderSelectionField(
     label: String,
@@ -357,7 +580,7 @@ fun GenderSelectionField(
                 onValueChange = {},
                 modifier = Modifier
                     .fillMaxWidth()
-                    .menuAnchor(), // Important for ExposedDropdownMenuBox
+                    .menuAnchor(),
                 readOnly = true,
                 placeholder = { Text("Chọn") },
                 trailingIcon = {

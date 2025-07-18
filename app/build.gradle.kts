@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.googleServices)
 }
 
 android {
@@ -49,6 +50,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.firebase.firestore.ktx)
+    implementation(fileTree(mapOf("dir" to "src/main/libs", "include" to listOf("*.aar", "*.jar"))))
+
     //implementation(libs.androidx.navigation.compose.jvmstubs)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -74,7 +78,8 @@ dependencies {
     implementation (libs.rxjava3.retrofit.adapter)
     implementation (libs.gson)
     implementation(libs.androidx.appcompat)
-
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     implementation(libs.androidx.navigation.compose)
 
@@ -82,6 +87,14 @@ dependencies {
 
     implementation(libs.kmp.date.time.picker)
 
+    implementation(platform("com.google.firebase:firebase-bom:33.16.0"))
+
+    // https://mvnrepository.com/artifact/com.google.android.gms/play-services-auth
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation(libs.firebase.auth)
+    implementation("com.google.firebase:firebase-appcheck-playintegrity")
+    implementation("com.google.android.gms:play-services-auth-api-phone")
+    implementation("commons-codec:commons-codec:1.14")
 
 
 

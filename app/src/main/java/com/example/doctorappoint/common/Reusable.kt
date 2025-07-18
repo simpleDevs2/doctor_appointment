@@ -1,6 +1,7 @@
-package com.example.doctorappoint.component
+package com.example.doctorappoint.common
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +51,7 @@ fun SpacerHeight(height : Dp = 10.dp){
 @Composable
 fun SearchBar(
    modifier: Modifier = Modifier,
+   placeholder: String,
    searchString: String,
    onSearchStringChange: (String) -> Unit
 ) {
@@ -64,7 +67,7 @@ fun SearchBar(
                 .fillMaxWidth(),
             placeholder = {
                Text(
-                   text = "Tìm kiếm dịch vụ",
+                   text = placeholder,
                    fontSize = 16.sp
                )
             },
@@ -81,7 +84,8 @@ fun SearchBar(
                     painter = painterResource(id = R.drawable.search),
                     contentDescription = "Search",
                 )
-            }
+            },
+            singleLine = true
         )
     }
 }
@@ -143,7 +147,8 @@ fun PrimaryActionButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isLoading: Boolean = false
 ) {
     Button(
         onClick = onClick,
@@ -153,7 +158,60 @@ fun PrimaryActionButton(
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(PrimaryColor),
         enabled = enabled
-    ) {
-        Text(text = text, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.W500)
+    ){
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Color.White,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(22.dp)
+            )
+        } else {
+            Text(text = text, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.W500)
+        }
+    }
+
+}
+
+fun String.removeVietnameseAccents(): String {
+    val regex = "\\p{InCombiningDiacriticalMarks}+".toRegex()
+    val temp = java.text.Normalizer.normalize(this, java.text.Normalizer.Form.NFD)
+    return regex.replace(temp, "")
+}
+
+/**
+ * Chuyển đổi định dạng ngày từ yyyy-MM-dd thành dd/MM/yyyy
+ * @param dateString Ngày theo định dạng yyyy-MM-dd
+ * @return Ngày theo định dạng dd/MM/yyyy hoặc chuỗi gốc nếu có lỗi
+ */
+fun formatDateForAPI(dateString: String?): String {
+    return if (dateString.isNullOrBlank()) {
+        ""
+    } else {
+        try {
+            val inputDate = java.time.LocalDate.parse(dateString)
+            inputDate.format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+        } catch (e: Exception) {
+            Log.e("DateUtils", "Error formatting date: ${e.message}")
+            dateString // Fallback to original format if parsing fails
+        }
+    }
+}
+
+/**
+ * Chuyển đổi định dạng ngày từ dd/MM/yyyy thành yyyy-MM-dd
+ * @param dateString Ngày theo định dạng dd/MM/yyyy
+ * @return Ngày theo định dạng yyyy-MM-dd hoặc chuỗi gốc nếu có lỗi
+ */
+fun formatDateFromAPI(dateString: String?): String {
+    return if (dateString.isNullOrBlank()) {
+        ""
+    } else {
+        try {
+            val inputDate = java.time.LocalDate.parse(dateString, java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            inputDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        } catch (e: Exception) {
+            Log.e("DateUtils", "Error formatting date: ${e.message}")
+            dateString // Fallback to original format if parsing fails
+        }
     }
 }
