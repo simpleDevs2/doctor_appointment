@@ -6,9 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.doctorappoint.data.api.CreateOrder
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.data.api.RetrofitInstance
-import com.example.doctorappoint.model.ApiError
+import com.example.doctorappoint.model.ApiResponse
 import com.example.doctorappoint.model.AppointmentResponse
-import com.example.doctorappoint.model.ConfirmPaymentResponse
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,8 +40,8 @@ class PaymentViewModel : ViewModel() {
     private val _appointmentState = MutableStateFlow<NetworkResponse<AppointmentResponse>>(NetworkResponse.Loading)
     val appointmentState: StateFlow<NetworkResponse<AppointmentResponse>> = _appointmentState
 
-    private val _confirmPaymentState = MutableStateFlow<NetworkResponse<ConfirmPaymentResponse>>(NetworkResponse.Loading)
-    val confirmPaymentState: StateFlow<NetworkResponse<ConfirmPaymentResponse>> = _confirmPaymentState
+    private val _confirmPaymentState = MutableStateFlow<NetworkResponse<ApiResponse>>(NetworkResponse.Loading)
+    val confirmPaymentState: StateFlow<NetworkResponse<ApiResponse>> = _confirmPaymentState
 
     suspend fun makeAppointment(userId: Int, scheduleDetailId: Int, appointmentTime: String): Boolean {
         Log.d("PaymentViewModel", "Starting make appointment process for user: $userId")
@@ -66,7 +65,7 @@ class PaymentViewModel : ViewModel() {
                 var errorMessage: String
                 if (errorBody != null) {
                     try {
-                        val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                        val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                         errorMessage = apiError.message ?: "Lỗi từ server không xác định (mã: ${response.code()})."
                         Log.e("PaymentViewModel", "Appointment API error: $errorMessage (Code: ${response.code()})")
                     } catch (e: Exception) {
@@ -85,7 +84,7 @@ class PaymentViewModel : ViewModel() {
             var errorMessage: String
             if (errorBody != null) {
                 try {
-                    val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                    val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                     errorMessage = apiError.message ?: "Lỗi HTTP không xác định (mã: ${e.code()})."
                     Log.e("PaymentViewModel", "Appointment HTTP Exception: $errorMessage (Code: ${e.code()})", e)
                 } catch (parseError: Exception) {
@@ -135,7 +134,7 @@ class PaymentViewModel : ViewModel() {
                 var errorMessage: String
                 if (errorBody != null) {
                     try {
-                        val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                        val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                         errorMessage = apiError.message ?: "Lỗi từ server không xác định."
                         Log.e("PaymentViewModel", "Confirm Payment API error: $errorMessage (Code: ${response.code()})")
                     } catch (e: Exception) {
@@ -155,7 +154,7 @@ class PaymentViewModel : ViewModel() {
             var errorMessage: String
             if (errorBody != null) {
                 try {
-                    val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                    val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                     errorMessage = apiError.message ?: "Lỗi HTTP không xác định."
                     Log.e("PaymentViewModel", "Confirm Payment HTTP Exception: $errorMessage (Code: ${e.code()})", e)
                 } catch (parseError: Exception) {

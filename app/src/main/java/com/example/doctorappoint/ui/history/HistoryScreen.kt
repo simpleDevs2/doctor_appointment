@@ -1,6 +1,7 @@
 // HistoryScreen.kt
 package com.example.doctorappoint.ui.history
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -187,8 +188,8 @@ fun HistoryItemCard(item: UserHistory,navController: NavHostController) {
                     "appointment_date" to item.appointment_date,
                     "appointment_time" to item.appointment_time,
                     "department" to item.department,
+                    "doctor_id" to item.doctor_id,
                     "doctor" to item.doctor,
-                    "doctor_id" to item.doctorId,
                     "payment_amount" to item.payment_amount,
                     "payment_status" to item.payment_status,
                     "payment_reference" to item.payment_reference,
@@ -196,6 +197,7 @@ fun HistoryItemCard(item: UserHistory,navController: NavHostController) {
                     "schedule_detail_id" to item.schedule_detail_id,
                     "status" to item.status
                 )
+                Log.d("HistoryScreen" ,"$historyDataMap")
                 navController.currentBackStackEntry?.savedStateHandle?.set("historyData", historyDataMap)
                 navController.navigate("history_detail")
 

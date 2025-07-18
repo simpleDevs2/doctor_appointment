@@ -1,6 +1,7 @@
 package com.example.doctorappoint.ui.history
 
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -122,7 +123,8 @@ fun HistoryDetailScreen(
         }
 
         Spacer(modifier = Modifier.weight(1f))
-        val doctorId : Int = 11
+        val doctorId  = historyData?.get("doctor_id")
+        Log.d("HistoryDetailScreen", "doctorId: $doctorId")
         PrimaryActionButton(
             "Đặt lại",
             onClick = {

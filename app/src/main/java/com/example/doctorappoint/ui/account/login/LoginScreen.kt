@@ -21,11 +21,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -78,22 +82,24 @@ fun LoginScreen(
     var keepSignedIn by remember { mutableStateOf(false) }
     var phoneNumberError by remember { mutableStateOf("") }
     var loginError by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val loginState by loginViewModel.loginState.collectAsState()
 
     LaunchedEffect(loginState) {
         when (val state = loginState) {
             is NetworkResponse.Success -> {
+                isLoading = false
                 if (state.data.status) {
                     LoginManager.saveLoginData(context, state.data.user, state.data.token)
-                    Toast.makeText(context, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show()
                     onLoginClick()
                 } else {
                     loginError = state.data.message
                 }
             }
             is NetworkResponse.Error -> {
-
+                isLoading = false
                 loginError = state.message
             }
             is NetworkResponse.Loading -> {
@@ -230,11 +236,22 @@ fun LoginScreen(
                         onDone = {
                             focusManager.clearFocus()
                             if(checkEmptyFields(context, phoneNumber, password) { error -> phoneNumberError = error }){
+                                isLoading = true
                                 loginViewModel.login(phoneNumber, password)
                             }
                         }
                     ),
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if(passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        val image = if (passwordVisible)
+                            Icons.Filled.Visibility
+                        else Icons.Filled.VisibilityOff
+                        val description = if (passwordVisible) "Hide password" else "Show password"
+
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, description)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -250,7 +267,7 @@ fun LoginScreen(
                     Text("Lưu thông tin đăng nhập")
                 }
 
-                // Login error message display
+
                 if (loginError.isNotEmpty()) {
                     Text(
                         text = loginError,
@@ -260,11 +277,16 @@ fun LoginScreen(
                     )
                 }
 
-                PrimaryActionButton(text = "Đăng nhập", onClick = {
+                PrimaryActionButton(text = "Đăng nhập",
+                    onClick = {
                     if(checkEmptyFields(context, phoneNumber, password) { error -> phoneNumberError = error }){
+                        isLoading = true
                         loginViewModel.login(phoneNumber, password)
-                    }
-                })
+                        }
+                    },
+                    enabled = !isLoading,
+                    isLoading = isLoading,
+                )
 
 
 

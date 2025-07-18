@@ -1,6 +1,7 @@
 package com.example.doctorappoint.data.services
 
 import com.example.doctorappoint.model.DoctorDailyScheduleResponse
+import com.example.doctorappoint.model.ListDoctorsScheduleResponse
 import com.example.doctorappoint.model.ScheduleResponse
 import retrofit2.Response
 import retrofit2.http.GET
@@ -18,6 +19,10 @@ interface DoctorSchedule {
     suspend fun getDoctorDailySchedule(
         @Query("doctor_id") doctorId: Int,
     ): Response<DoctorDailyScheduleResponse>
+
+    @GET("doctors/schedules")
+    suspend fun getListOfDoctorsSchedules(
+    ): Response<ListDoctorsScheduleResponse>
 
 }
 

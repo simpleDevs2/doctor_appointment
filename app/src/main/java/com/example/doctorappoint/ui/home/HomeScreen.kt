@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -89,6 +90,7 @@ fun HomeScreen(
         ) {
             item {
                 SliderBanner()
+                SpacerHeight(16.dp)
                 ServicesGrid(navController = navController)
                 HighlightNewsSection()
             }
@@ -175,7 +177,11 @@ fun SliderBanner(){
                 Card(modifier = Modifier.wrapContentSize(),
                     elevation = CardDefaults.cardElevation(8.dp)
                 ){
-                    Image(painter = painterResource(id = bannerList[currentPage].imageResId),contentDescription = "")
+                    Image(
+                        painter = painterResource(id = bannerList[currentPage].imageResId),
+                        contentDescription = "",
+                        contentScale = ContentScale.Crop
+                    )
 
                 }
             }
@@ -216,7 +222,7 @@ fun ServicesGrid(modifier: Modifier = Modifier,navController: NavHostController)
                 modifier = Modifier.weight(1f),
                 iconResId = R.drawable.doctor,
                 onclick = {
-                   // navController.navigate("doctorList")
+                    navController.navigate("list_doctors_schedule")
                 }
             )
         }

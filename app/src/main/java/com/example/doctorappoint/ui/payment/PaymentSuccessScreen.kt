@@ -1,5 +1,6 @@
 package com.example.doctorappoint.ui.payment
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,8 +16,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,15 +23,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
 import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.formatDateForAPI
-import com.example.doctorappoint.data.api.NetworkResponse
-import com.example.doctorappoint.model.AppointmentResponse
-import com.example.doctorappoint.model.BookingData
 import com.example.doctorappoint.ui.service.InfoRow
 import com.example.doctorappoint.ui.theme.PrimaryColor
 import com.example.doctorappoint.ui.theme.SecondaryColor
@@ -105,6 +100,7 @@ fun PaymentSuccessScreen(
 
             Column(modifier = Modifier.padding(16.dp)) {
                 bookingData?.let{data ->
+                    Log.d("Payment", "id ma dat lich ${data["schedule_id"]}")
                     InfoRow("Mã đặt lịch", data["schedule_id"].toString())
                     InfoRow("Bác sĩ", data["doctor_name"].toString())
                     InfoRow("Ngày khám", formatDateForAPI( data["appointment_date"].toString()))

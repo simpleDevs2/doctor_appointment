@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.data.api.RetrofitInstance
-import com.example.doctorappoint.model.ApiError
+import com.example.doctorappoint.model.ApiResponse
 import com.example.doctorappoint.model.UpdateProfile
 import com.example.doctorappoint.model.UpdateProfileResponse
 import com.google.gson.Gson
@@ -40,7 +40,7 @@ class PersonalInfoViewModel : ViewModel(){
                     var errorMessages : String
                     if(errorBody != null){
                         try{
-                            val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                            val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                             errorMessages = apiError.message?:"Lỗi từ server không xác định (mã: ${response.code()})."
                             Log.e("PersonalInfoViewModel", "Update Profile API error: $errorMessages (Code: ${response.code()})")
                         }catch (e: Exception){
@@ -60,7 +60,7 @@ class PersonalInfoViewModel : ViewModel(){
                 var errorMessage : String
                 if(errorBody != null){
                     try{
-                        val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                        val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                         errorMessage = apiError.message?:"Lỗi HTTP không xác định (mã: ${e.code()})."
                         Log.e("PersonalInfoViewModel", "Update Profile HTTP Exception: $errorMessage (Code: ${e.code()})",e)
                     }catch(parse : Exception){

@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.data.api.RetrofitInstance
-import com.example.doctorappoint.model.ApiError
+import com.example.doctorappoint.model.ApiResponse
 import com.example.doctorappoint.model.DoctorDailyScheduleResponse
 import com.example.doctorappoint.model.HistoryResponse
 import com.google.gson.Gson
@@ -47,7 +47,7 @@ class HistoryViewModel : ViewModel() {
                     var errorMessage: String
                     if (errorBody != null) {
                         try {
-                            val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                            val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                             errorMessage = apiError.message ?: "Lỗi từ server không xác định (mã: ${response.code()})."
                             Log.e("HistoryViewModel", "History API error: $errorMessage (Code: ${response.code()})")
                         } catch (e: Exception) {
@@ -67,7 +67,7 @@ class HistoryViewModel : ViewModel() {
                 var errorMessage: String
                 if (errorBody != null) {
                     try {
-                        val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                        val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                         errorMessage = apiError.message
                         Log.e("HistoryViewModel", "History HTTP Exception: $errorMessage (Code: ${e.code()})", e)
                     } catch (parseError: Exception) {
@@ -99,7 +99,7 @@ class HistoryViewModel : ViewModel() {
             _doctorDailyScheduleState.value = NetworkResponse.Loading
             Log.d("HistoryViewModel", "Making API call to fetch doctor daily schedule...")
             try{
-                val response = RetrofitInstance.getDoctorDailySchedule().getDoctorDailySchedule(doctorId)
+                val response = RetrofitInstance.getDoctorSchedule().getDoctorDailySchedule(doctorId)
                 if (response.isSuccessful){
                     val doctorDailyScheduleResponse = response.body()
                     if(doctorDailyScheduleResponse != null && doctorDailyScheduleResponse.status){
@@ -116,7 +116,7 @@ class HistoryViewModel : ViewModel() {
                     var errorMessage: String
                     if (errorBody != null) {
                         try {
-                            val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                            val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                             errorMessage = apiError.message
                             Log.e("HistoryViewModel", "History API error: $errorMessage (Code: ${response.code()})")
                         } catch (e: Exception) {
@@ -136,7 +136,7 @@ class HistoryViewModel : ViewModel() {
                 var errorMessage: String
                 if (errorBody != null) {
                     try {
-                        val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                        val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                         errorMessage = apiError.message
                         Log.e("HistoryViewModel", "History HTTP Exception: $errorMessage (Code: ${e.code()})", e)
                     } catch (parseError: Exception) {

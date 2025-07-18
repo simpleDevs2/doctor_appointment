@@ -2,13 +2,11 @@ package com.example.doctorappoint.ui
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,18 +30,26 @@ import com.example.doctorappoint.ui.payment.PaymentSuccessScreen
 import com.example.doctorappoint.ui.service.BookingDateScreen
 import com.example.doctorappoint.ui.service.BookingSummaryScreen
 import com.example.doctorappoint.ui.service.BookingTimeScreen
+import com.example.doctorappoint.ui.service.DoctorListScreen
 import com.example.doctorappoint.ui.theme.DoctorAppointTheme
 import com.example.doctorappoint.ui.theme.service.BookingScreen
 import com.example.doctorappoint.ui.theme.service.SelectDepartmentScreen
 import com.example.doctorappoint.ui.theme.user.OtpVerificationScreen
+import com.google.firebase.FirebaseApp
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import vn.zalopay.sdk.Environment
 import vn.zalopay.sdk.ZaloPaySDK
 
 class MainActivity : ComponentActivity() {
     @SuppressLint("ViewModelConstructorInComposable")
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FirebaseApp.initializeApp(this)
+        val firebaseAppCheck = FirebaseAppCheck.getInstance()
+        firebaseAppCheck.installAppCheckProviderFactory(
+            PlayIntegrityAppCheckProviderFactory.getInstance()
+        )
         enableEdgeToEdge()
 
         val policy = StrictMode.ThreadPolicy.Builder()
@@ -107,26 +113,22 @@ fun MyApp() {
                 RegisterScreen(
                     navController = navController,
                     onLoginClick = { navController.navigate("login") },
-                    onOtpVerificationClick = { phoneNumber, verificationId ->
-                        navController.navigate("otpVerification/$phoneNumber/$verificationId")
+                    onOtpVerificationClick = { phoneNumber, verificationID ->
+                        navController.navigate("otpVerification/$phoneNumber/$verificationID")
                     }
                 )
             }
 
-            composable("otpVerification/{phoneNumber}/{verificationId}") { backStackEntry ->
+            composable("otpVerification/{phoneNumber}/{verificationID}") { backStackEntry ->
                 val phoneNumber = backStackEntry.arguments?.getString("phoneNumber")
-                val verificationId = backStackEntry.arguments?.getString("verificationId")
+                val verificationID = backStackEntry.arguments?.getString("verificationID")
 
-                if (phoneNumber != null && verificationId != null) {
+                if (phoneNumber != null && verificationID != null) {
                     OtpVerificationScreen(
                         navController = navController,
                         phoneNumber = phoneNumber,
-                        verificationId = verificationId,
-                        onHomeClick = {
-                            isLoggedIn = true
-                            navController.navigate("main") {
-                                popUpTo("welcome") { inclusive = true }
-                            }
+                        verificationID = verificationID,
+                        onCompleteRegister ={
                         }
                     )
                 } else {
@@ -157,16 +159,19 @@ fun MyApp() {
             composable("selectDepartment") {
                 SelectDepartmentScreen(navController = navController)
             }
+            composable("list_doctors_schedule"){
+                DoctorListScreen(navController = navController)
+            }
 
             composable(
                 route = "booking/{departmentId}/{price}",
                 arguments = listOf(
                     navArgument("departmentId") { type = NavType.IntType },
-                    navArgument("price") { type = NavType.FloatType }
+                    navArgument("price") { type = NavType.IntType }
                 )
             ) { backStackEntry ->
                 val departmentId = backStackEntry.arguments?.getInt("departmentId") ?: -1
-                val price = backStackEntry.arguments?.getFloat("price")?.toDouble() ?: 0.0
+                val price = backStackEntry.arguments?.getInt("price")?.toInt() ?: 0
                 BookingScreen(
                     navController = navController,
                     departmentId = departmentId,
@@ -211,7 +216,7 @@ fun MyApp() {
                     transactionId = transactionId,
                     bookingDataJson = bookingDataJson,
                     onBackToHome = {
-                        navController.navigate("home") {
+                        navController.navigate("main") {
                             popUpTo(navController.graph.startDestinationId) { inclusive = true }
                         }
                     }

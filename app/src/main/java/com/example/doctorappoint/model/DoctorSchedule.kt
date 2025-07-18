@@ -12,6 +12,12 @@ data class DoctorDailyScheduleResponse(
     val data: DoctorDailySchedule?
 )
 
+data class ListDoctorsScheduleResponse(
+    val status: Boolean,
+    val message: String?,
+    val data: List<DoctorInfo>
+)
+
 data class DoctorDailySchedule(
     val doctor: DoctorInfo,
     val schedules : List<DailyScheduleDetail>
@@ -33,6 +39,7 @@ data class DoctorInfo(
     val name: String,
     val image: String?,
     val degree: String,
+    val gender: String,
     val department: String,
     val price: Int
 )

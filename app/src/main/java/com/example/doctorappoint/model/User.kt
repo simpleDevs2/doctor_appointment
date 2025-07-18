@@ -7,6 +7,17 @@ data class LoginResponse(
     val user: User
 )
 
+data class RegisterResponse(
+    val message: String,
+    val status: Boolean,
+    val data : RegisterData
+)
+
+data class RegisterData(
+    val id :Int,
+    val phone: String,
+)
+
 data class User(
     val address: String,
     val api_token: String,

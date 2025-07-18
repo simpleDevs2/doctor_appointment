@@ -6,3 +6,7 @@ package com.example.doctorappoint.data.Constant
    const  val URL_CREATE_ORDER :String = "https://sb-openapi.zalopay.vn/v2/create"
 
 }
+
+object ImageUrl{
+    const val IMG_URL: String = "https://doctorapp.myth.vn/storage/app/media"
+}

@@ -4,24 +4,20 @@ import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,26 +32,26 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.doctorappoint.R
-import com.example.doctorappoint.common.BackButton
+import com.example.doctorappoint.common.BackBtnAndTitle
 import com.example.doctorappoint.common.PhoneNumberUtils
 import com.example.doctorappoint.common.PrimaryActionButton
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
-import com.example.doctorappoint.data.api.NetworkResponse
-import com.example.doctorappoint.ui.account.register.OtpViewModel
 import com.example.doctorappoint.ui.theme.PrimaryColor
+import com.google.firebase.Firebase
+import com.google.firebase.auth.PhoneAuthProvider
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.delay
 
 @Composable
 fun OtpVerificationScreen(
     navController: NavHostController,
     phoneNumber: String,
-    verificationId: String,
+    verificationID: String,
     modifier: Modifier = Modifier,
-    onHomeClick: () -> Unit = {}
+    onCompleteRegister: () -> Unit = {}
 ) {
     var timer by remember { mutableStateOf(60) }
     var canResend by remember { mutableStateOf(false) }
@@ -63,17 +59,9 @@ fun OtpVerificationScreen(
     var otp by remember { mutableStateOf("") }
     val context = LocalContext.current
     val activity = context as? Activity
-    val otpViewModel: OtpViewModel = viewModel()
 
-    val verificationState by otpViewModel.verificationState.collectAsState()
 
-    // Set the verification ID in the ViewModel when the screen is created
-    LaunchedEffect(verificationId) {
-        if (verificationId.isNotEmpty() && verificationId != "placeholder") {
-            // Set the verification ID in the ViewModel for verification
-            otpViewModel.setVerificationId(verificationId)
-        }
-    }
+
 
     LaunchedEffect(key1 = timer) {
         if (timer > 0) {
@@ -84,23 +72,6 @@ fun OtpVerificationScreen(
         }
     }
 
-    LaunchedEffect(verificationState) {
-        when (val state = verificationState) {
-            is NetworkResponse.Success -> {
-                if (state.data) {
-                    Toast.makeText(context, "Xác thực OTP thành công!", Toast.LENGTH_SHORT).show()
-                    otpViewModel.clearStates()
-                    onHomeClick()
-                }
-            }
-            is NetworkResponse.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
-            }
-            is NetworkResponse.Loading -> {
-                // Loading state - no action needed
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -110,8 +81,12 @@ fun OtpVerificationScreen(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.Top
     ) {
-        BackButton { navController.popBackStack() }
-        SpacerHeight(24.dp)
+        BackBtnAndTitle(title= "Xác nhận OTP",
+            onBackClick = {
+                navController.popBackStack()
+            }
+        )
+        SpacerHeight(18.dp)
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -122,7 +97,7 @@ fun OtpVerificationScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_background),
+                    painter = painterResource(id = R.drawable.logo),
                     contentDescription = "Logo",
                     modifier = Modifier.size(48.dp)
                 )
@@ -145,62 +120,40 @@ fun OtpVerificationScreen(
             )
 
             Text(
-                text = "Mã OTP đã được gửi tới số điện thoại ${PhoneNumberUtils.formatForDisplay(phoneNumber)}",
+                text = "Mã OTP đã được gửi tới số điện thoại\n ${PhoneNumberUtils.formatForDisplay(phoneNumber)}",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.W400,
                 color = Color.Gray,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            BasicTextField(
+            OutlinedTextField(
                 value = otp,
                 onValueChange = {
                     if (it.length <= otpLength) otp = it
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                decorationBox = { innerTextField ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        repeat(otpLength) { index ->
-                            val char = otp.getOrNull(index)?.toString() ?: ""
-                            val isFocused = otp.length == index
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .border(
-                                        width = 2.dp,
-                                        color = if (isFocused) PrimaryColor else Color(0xFFE5E7EB),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = char,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (char.isNotEmpty()) Color.Black else Color.LightGray
-                                )
-                            }
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier.size(0.dp)
-                    ) {
-                        innerTextField()
-                    }
-                }
+                label = { Text("Mã OTP") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
 
             PrimaryActionButton("Xác nhận", onClick = {
                 if (otp.length == otpLength) {
-                    otpViewModel.verifyOtp(otp)
+                    if(verificationID.isNotEmpty()){
+                        val credential = PhoneAuthProvider.getCredential(verificationID, otp)
+                        Firebase.auth.signInWithCredential(credential)
+                            .addOnCompleteListener { task->
+                                if(task.isSuccessful){
+                                    Toast.makeText(context, "Xác thực thanh cong", Toast.LENGTH_SHORT).show()
+                                    navController.previousBackStackEntry?.savedStateHandle?.set("otpVerified", true)
+                                    navController.previousBackStackEntry?.savedStateHandle?.set("verifiedPhoneNumber", phoneNumber)
+                                    navController.popBackStack()
+                                }else{
+                                    Toast.makeText(context, "Xác thực thất bại", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                    }
                 } else {
                     Toast.makeText(context, "Vui lòng nhập đủ mã OTP.", Toast.LENGTH_SHORT).show()
                 }
@@ -215,13 +168,7 @@ fun OtpVerificationScreen(
                     if (canResend) {
                         TextButton(
                             onClick = {
-                                if (activity != null) {
-                                    // Format for SMS using utility
-                                    val fullPhoneNumber = PhoneNumberUtils.toInternationalFormat(phoneNumber)
-                                    otpViewModel.resendOtp(fullPhoneNumber, activity)
-                                    timer = 60
-                                    canResend = false
-                                }
+
                             }
                         ) {
                             Text(

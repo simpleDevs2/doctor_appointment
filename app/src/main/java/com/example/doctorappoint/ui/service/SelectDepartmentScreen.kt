@@ -52,6 +52,7 @@ import com.example.doctorappoint.common.LoginManager
 import com.example.doctorappoint.common.SearchBar
 import com.example.doctorappoint.common.SpacerHeight
 import com.example.doctorappoint.common.SpacerWidth
+import com.example.doctorappoint.common.removeVietnameseAccents
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.model.Department
 import com.example.doctorappoint.model.User
@@ -114,8 +115,12 @@ fun SelectDepartmentScreen(
 
             is NetworkResponse.Success -> {
                 val departments = (departmentsState as NetworkResponse.Success<List<Department>>).data
+                val normalizedQuery = searchString.removeVietnameseAccents().lowercase()
+
                 val filteredDepartments = if (searchString.isNotEmpty()) {
-                    departments.filter { it.name.contains(searchString, ignoreCase = true) }
+                    departments.filter {
+                        it.name.removeVietnameseAccents().lowercase().contains(normalizedQuery)
+                    }
                 } else {
                     departments
                 }
@@ -275,7 +280,7 @@ fun DepartmentCard(
                     color = Color(0xFF0066CC),
                     modifier = Modifier.weight(1f)
                 )
-                val priceValue = department.price.toDoubleOrNull() ?: 0.0
+                val priceValue = department.price.toInt()
                 val formattedPrice = NumberFormat
                     .getCurrencyInstance(Locale("vi", "VN"))
                     .format(priceValue)

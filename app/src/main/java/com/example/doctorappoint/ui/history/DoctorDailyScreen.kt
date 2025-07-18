@@ -73,8 +73,7 @@ fun DoctorDailyScreen(
     val allDailySchedules = (doctorDailyScheduleState as? NetworkResponse.Success)?.data?.data?.schedules ?: emptyList()
 
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
-    val currentDate = LocalDate.now()
-    val currentTime = LocalTime.now()
+
 
     LaunchedEffect(allDailySchedules) {
         if (allDailySchedules.isNotEmpty() && selectedDate == null) {
@@ -161,8 +160,10 @@ fun UnifiedDoctorScheduleCard(
                             .background(if (selected) PrimaryColor else Color.White)
                             .border(1.dp, if (selected) PrimaryColor else Color.Gray, RoundedCornerShape(8.dp))
                             .padding(8.dp)
-                            .width(50.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .width(48.dp)
+                            .height(56.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text(dayMonth, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (selected) Color.White else Color.Black)
                         Text(year, fontSize = 12.sp, color = if (selected) Color.White else Color.Gray)
@@ -171,9 +172,11 @@ fun UnifiedDoctorScheduleCard(
             }
 
             SpacerHeight(16.dp)
+            val shiftOrder = mapOf("Ca sáng" to 0, "Ca chiều" to 1)
+            val sortedSchedules = scheduleDetails.sortedBy { shiftOrder[it.shift] ?: Int.MAX_VALUE }
 
-            scheduleDetails.forEach { schedule ->
-                Text("Phòng: ${schedule.room} - ${schedule.shift} (${LocalDate.parse(schedule.working_date).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("vi"))})",
+            sortedSchedules.forEach { schedule ->
+                Text("${schedule.room} - ${schedule.shift} (${LocalDate.parse(schedule.working_date).dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("vi"))})",
                     fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF388E3C))
                 SpacerHeight(8.dp)
 

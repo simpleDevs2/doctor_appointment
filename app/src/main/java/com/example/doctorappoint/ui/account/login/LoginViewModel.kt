@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.doctorappoint.data.api.NetworkResponse
 import com.example.doctorappoint.data.api.RetrofitInstance
-import com.example.doctorappoint.model.ApiError
+import com.example.doctorappoint.model.ApiResponse
 import com.example.doctorappoint.model.LoginResponse
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +42,7 @@ class LoginViewModel : ViewModel() {
                     var errorMessage: String
                     if(errorBody != null){
                         try{
-                            val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                            val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                             errorMessage = apiError.message ?: "Lỗi từ server không xác định (mã: ${response.code()})."
                             Log.e("LoginViewModel", "Login API error: $errorMessage (Code: ${response.code()})")
 
@@ -56,13 +56,13 @@ class LoginViewModel : ViewModel() {
                     }
                     _loginState.value = NetworkResponse.Error(errorMessage)
                 }
-                
+
             } catch (e: HttpException) {
                 val errorBody = e.response()?.errorBody()?.string()
                 var errorMessage: String
                 if(errorBody != null){
                     try {
-                        val apiError = Gson().fromJson(errorBody, ApiError::class.java)
+                        val apiError = Gson().fromJson(errorBody, ApiResponse::class.java)
                         errorMessage = apiError.message?: "Lỗi HTTP không xác định (mã: ${e.code()})."
                         Log.e("LoginViewModel", "Login HTTP Exception: $errorMessage (Code: ${e.code()})", e)
 

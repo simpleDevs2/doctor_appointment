@@ -157,7 +157,7 @@ fun BookingTimeScreen(
                             navController.previousBackStackEntry
                                 ?.savedStateHandle
                                 ?.set("doctor_id", selectedDocInfo.doctorId)
-
+                            navController.popBackStack()
                         }
                     )
                     Spacer(modifier = Modifier.height(16.dp))

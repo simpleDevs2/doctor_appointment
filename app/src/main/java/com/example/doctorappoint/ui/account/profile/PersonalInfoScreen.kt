@@ -71,6 +71,7 @@ fun PersonalInfoScreen(
     userState: MutableState<User?>,
     onProfileUpdated: () -> Unit = {}
 ) {
+
     val context = LocalContext.current
     val personalInfoViewModel: PersonalInfoViewModel = viewModel()
     val updateProfileState by personalInfoViewModel.updateProfileState.collectAsState()
@@ -87,7 +88,7 @@ fun PersonalInfoScreen(
         ProfileHeader(userState.value)
         SpacerHeight(24.dp)
 
-        // Add a key to force recomposition when profile is updated
+
         val reloadKey = remember { mutableStateOf(0) }
 
         LaunchedEffect(updateProfileState) {
@@ -112,13 +113,14 @@ fun PersonalInfoScreen(
     LaunchedEffect(updateProfileState) {
         when (val state = updateProfileState) {
             is NetworkResponse.Success -> {
+
                 LoginManager.saveLoginData(context, state.data.data, state.data.data.api_token)
                 userState.value = state.data.data
                 Toast.makeText(context, "Cập nhật thành công!", Toast.LENGTH_SHORT).show()
                 onProfileUpdated()
             }
             is NetworkResponse.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+
             }
             else -> {}
         }

@@ -89,10 +89,11 @@ dependencies {
 
     implementation(platform("com.google.firebase:firebase-bom:33.16.0"))
 
+    // https://mvnrepository.com/artifact/com.google.android.gms/play-services-auth
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
     implementation(libs.firebase.auth)
-
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
-
+    implementation("com.google.android.gms:play-services-auth-api-phone")
     implementation("commons-codec:commons-codec:1.14")
 
 

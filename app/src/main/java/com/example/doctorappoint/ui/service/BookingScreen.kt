@@ -51,7 +51,7 @@ fun BookingScreen(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     departmentId: Int,
-    price: Double
+    price: Int
 ){
     val departmentViewModel: DepartmentViewModel = viewModel()
     val departmentsState by departmentViewModel.departments.collectAsState()

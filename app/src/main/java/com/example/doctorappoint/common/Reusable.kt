@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,7 +84,8 @@ fun SearchBar(
                     painter = painterResource(id = R.drawable.search),
                     contentDescription = "Search",
                 )
-            }
+            },
+            singleLine = true
         )
     }
 }
@@ -145,7 +147,8 @@ fun PrimaryActionButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isLoading: Boolean = false
 ) {
     Button(
         onClick = onClick,
@@ -155,9 +158,24 @@ fun PrimaryActionButton(
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(PrimaryColor),
         enabled = enabled
-    ) {
-        Text(text = text, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.W500)
+    ){
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = Color.White,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(22.dp)
+            )
+        } else {
+            Text(text = text, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.W500)
+        }
     }
+
+}
+
+fun String.removeVietnameseAccents(): String {
+    val regex = "\\p{InCombiningDiacriticalMarks}+".toRegex()
+    val temp = java.text.Normalizer.normalize(this, java.text.Normalizer.Form.NFD)
+    return regex.replace(temp, "")
 }
 
 /**

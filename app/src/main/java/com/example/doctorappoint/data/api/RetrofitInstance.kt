@@ -31,6 +31,6 @@ object RetrofitInstance {
     fun makeAppointment(): Appointment = appointment
     fun confirmPayment(): Appointment = appointment
     fun getUserHistory(): History = history
-    fun getDoctorDailySchedule(): DoctorSchedule = doctorSchedule
+
 
 }
